@@ -108,34 +108,34 @@ button.primary:hover:not(:disabled) {
 
 /* 右栏：参数 */
 .params {
-  padding: 20px 24px;
+  padding: 22px 26px;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 24px;
+  gap: 16px 28px;
   align-items: center;
   background: #16161a;
   border-bottom: 1px solid #2a2a30;
 }
 .param-row {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px;
 }
 .param-row > label:first-child {
-  color: #8e8e93; min-width: 58px; flex-shrink: 0;
+  color: #b0b0b5; min-width: 48px; flex-shrink: 0; font-weight: 500;
 }
 select, input[type=text] {
   background: #2a2a30;
   color: #e5e5ea;
   border: 1px solid #3a3a40;
   border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
+  padding: 7px 12px;
+  font-size: 14px;
   min-width: 120px;
 }
 select:focus, input:focus { outline: none; border-color: #4a9eff; }
-.check-group { display: flex; gap: 14px; font-size: 12px; }
+.check-group { display: flex; gap: 14px; font-size: 13px; }
 .check-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; color: #b0b0b5; }
-#btn-generate { width: 100%; margin-top: 8px; }
+#btn-generate { width: 100%; margin-top: 12px; }
 
 /* 右栏：预览 */
 .preview {
