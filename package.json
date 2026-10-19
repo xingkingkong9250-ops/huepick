@@ -2,7 +2,7 @@
   "name": "huepick",
   "displayName": "拾色 HuePick",
   "description": "纯本地运行的图片主色提取工具：一键生成带 HEX 与占比标注的专业色卡，无需 Python。",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "huepick-studio",
   "license": "MIT",
   "keywords": [
@@ -88,6 +88,46 @@
           "type": "boolean",
           "default": true,
           "description": "色卡是否输出到原图同目录；关闭则弹窗选择输出目录。"
+        },
+        "huepick.template": {
+          "type": "string",
+          "enum": ["landscape", "portrait", "square", "custom"],
+          "default": "landscape",
+          "description": "色卡模板：横版 1920×1080 / 竖版 1080×1920 / 方版 1080×1080 / 自定义。"
+        },
+        "huepick.customWidth": {
+          "type": "number",
+          "default": 1920,
+          "minimum": 400,
+          "maximum": 4096,
+          "description": "自定义画布宽度（template 为 custom 时生效）。"
+        },
+        "huepick.customHeight": {
+          "type": "number",
+          "default": 1080,
+          "minimum": 400,
+          "maximum": 4096,
+          "description": "自定义画布高度（template 为 custom 时生效）。"
+        },
+        "huepick.theme": {
+          "type": "string",
+          "enum": ["dark", "light"],
+          "default": "dark",
+          "description": "色卡主题：深色 / 浅色（影响背景、文字、分隔线颜色）。"
+        },
+        "huepick.exportFormats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["css", "scss", "tailwind", "json"]
+          },
+          "default": ["css"],
+          "description": "生成色卡时同步导出的配色文件格式（CSS 变量 / SCSS / Tailwind / JSON）。"
+        },
+        "huepick.exportHarmony": {
+          "type": "boolean",
+          "default": true,
+          "description": "导出配色文件时是否包含基于主色生成的配色方案（互补/类似/三色/分裂互补/单色）。"
         }
       }
     }

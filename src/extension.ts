@@ -2,8 +2,44 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { generateCard } from './core/cardRenderer';
-import { BatchSummary, ProcessResult } from './core/types';
+import { generateHarmonies } from './core/colorHarmony';
+import { exportPalettes } from './core/exporter';
+import {
+  BatchSummary,
+  ExportFormat,
+  ProcessResult,
+  RGB,
+  TemplateId,
+  ThemeId,
+} from './core/types';
 import { collectImages, isImageFile, resolveOutputPath } from './utils/fileNaming';
+
+/** 模板尺寸表 */
+const TEMPLATE_SIZES: Record<Exclude<TemplateId, 'custom'>, { width: number; height: number }> = {
+  landscape: { width: 1920, height: 1080 },
+  portrait: { width: 1080, height: 1920 },
+  square: { width: 1080, height: 1080 },
+};
+
+/** 主题背景色 */
+const THEME_BACKGROUNDS: Record<ThemeId, RGB> = {
+  dark: { r: 24, g: 24, b: 26 },
+  light: { r: 245, g: 245, b: 247 },
+};
+
+/** 从配置解析画布尺寸 */
+function resolveCanvasSize(cfg: vscode.WorkspaceConfiguration): { width: number; height: number } {
+  const template = cfg.get<TemplateId>('template', 'landscape');
+  if (template === 'custom') {
+    const width = cfg.get<number>('customWidth', 1920);
+    const height = cfg.get<number>('customHeight', 1080);
+    return {
+      width: Math.min(4096, Math.max(400, width)),
+      height: Math.min(4096, Math.max(400, height)),
+    };
+  }
+  return TEMPLATE_SIZES[template] ?? TEMPLATE_SIZES.landscape;
+}
 
 export function activate(context: vscode.ExtensionContext) {
   /** 批量处理一组图片 */
@@ -13,6 +49,10 @@ export function activate(context: vscode.ExtensionContext) {
     numColors: number,
     cropBars: boolean,
     outputDir: string | undefined,
+    canvasSize: { width: number; height: number },
+    background: RGB,
+    exportFormats: ExportFormat[],
+    exportHarmony: boolean,
     progress: vscode.Progress<{ message?: string; increment?: number }>
   ): Promise<BatchSummary> => {
     const results: ProcessResult[] = [];
@@ -30,11 +70,30 @@ export function activate(context: vscode.ExtensionContext) {
       const result = await generateCard(src, {
         numColors,
         cropBars,
-        cardWidth: 1920,
-        cardHeight: 1080,
-        background: { r: 24, g: 24, b: 26 },
+        cardWidth: canvasSize.width,
+        cardHeight: canvasSize.height,
+        background,
         outputPath: outPath,
       });
+
+      // 成功后：生成配色方案并按需导出
+      if (result.success && result.colors && result.colors.length > 0) {
+        try {
+          const harmonies = exportHarmony ? generateHarmonies(result.colors[0].rgb) : [];
+          result.harmonies = harmonies;
+          if (exportFormats.length > 0) {
+            result.exportedFiles = exportPalettes(
+              src,
+              outPath,
+              result.colors,
+              harmonies,
+              exportFormats
+            );
+          }
+        } catch (err) {
+          console.error(`[HuePick EXPORT FAIL] ${src}: ${err}`);
+        }
+      }
 
       results.push(result);
       if (result.success) {
@@ -55,6 +114,11 @@ export function activate(context: vscode.ExtensionContext) {
     const cropBars = cfg.get<boolean>('cropBlackBars', true);
     const suffix = cfg.get<string>('outputSuffix', '色卡');
     const toSourceDir = cfg.get<boolean>('outputToSourceDir', true);
+    const theme = cfg.get<ThemeId>('theme', 'dark');
+    const exportFormats = cfg.get<ExportFormat[]>('exportFormats', ['css']);
+    const exportHarmony = cfg.get<boolean>('exportHarmony', true);
+    const canvasSize = resolveCanvasSize(cfg);
+    const background = THEME_BACKGROUNDS[theme] ?? THEME_BACKGROUNDS.dark;
 
     if (!fs.existsSync(targetPath)) {
       vscode.window.showErrorMessage(`拾色 HuePick：目标路径不存在 ${targetPath}`);
@@ -88,17 +152,34 @@ export function activate(context: vscode.ExtensionContext) {
         title: '拾色 HuePick：正在生成色卡…',
         cancellable: false,
       },
-      (progress) => processBatch(files, suffix, numColors, cropBars, outputDir, progress)
+      (progress) =>
+        processBatch(
+          files,
+          suffix,
+          numColors,
+          cropBars,
+          outputDir,
+          canvasSize,
+          background,
+          exportFormats,
+          exportHarmony,
+          progress
+        )
     );
 
     // 结果反馈
+    const exportCount = summary.results.reduce(
+      (sum, r) => sum + (r.exportedFiles?.length ?? 0),
+      0
+    );
+    const exportNote = exportCount > 0 ? `，导出配色文件 ${exportCount} 个` : '';
     if (summary.failed > 0) {
       vscode.window.showWarningMessage(
-        `拾色 HuePick：成功 ${summary.succeeded} 张，失败 ${summary.failed} 张（详见控制台）。`
+        `拾色 HuePick：成功 ${summary.succeeded} 张，失败 ${summary.failed} 张${exportNote}（详见控制台）。`
       );
     } else {
       vscode.window.showInformationMessage(
-        `拾色 HuePick：完成，生成 ${summary.succeeded} 张色卡。`
+        `拾色 HuePick：完成，生成 ${summary.succeeded} 张色卡${exportNote}。`
       );
     }
 

@@ -4,6 +4,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] - 2026-10-19
+
+### Added
+- **配色规则引擎**：基于第一主色在 HSL 空间生成 5 套经典配色方案（互补色 / 类似色 / 三原色 / 分裂互补 / 单色系）
+- **多格式导出**：生成色卡时同步导出配色文件，支持 CSS Variables / SCSS / Tailwind config / JSON
+- **色卡模板**：新增 `landscape`（横版）、`portrait`（竖版）、`square`（方版）、`custom`（自定义尺寸）
+- **主题切换**：深色 / 浅色两套主题，背景、文字、分隔线、色块描边自动适配
+- **新配置项**：`template`、`customWidth`、`customHeight`、`theme`、`exportFormats`、`exportHarmony`
+- **缩略图水平居中**：横版/方版色卡中缩略图不再左对齐，改为在图片区域内居中显示
+
+### Fixed
+- **MMCQ 切割失效**：当中位数恰好等于轴最大值时，右侧色箱为空，导致分裂停滞，最终只剩一个平均色。现在会向左修正切割点，保证两侧均非空，避免大面积图片提取主色失准
+
 ## [0.3.0] - 2026-10-19
 
 ### Changed - **BREAKING**

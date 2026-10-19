@@ -143,26 +143,34 @@ function findMedian(box: VBox, axis: 'r' | 'g' | 'b'): number {
 /** 将色箱沿最长轴的中位数切开 */
 function splitBox(box: VBox): [VBox, VBox] {
   const axis = longestAxis(box);
-  const median = findMedian(box, axis);
+  const axisMax = axis === 'r' ? box.rMax : axis === 'g' ? box.gMax : box.bMax;
+  let cut = findMedian(box, axis);
+
+  // 中位数若等于轴上最大值，右侧色箱会为空（所有像素留在左侧），
+  // 导致切割无法推进、最终只剩一个平均色。此时将切割点左移一格，
+  // 让最大值单独进入右侧，保证两侧均非空。
+  if (cut >= axisMax) {
+    cut = axisMax - 1;
+  }
 
   const box1: VBox = { ...box, histogram: new Map(), population: 0 };
   const box2: VBox = { ...box, histogram: new Map(), population: 0 };
 
   if (axis === 'r') {
-    box1.rMax = median;
-    box2.rMin = median + 1;
+    box1.rMax = cut;
+    box2.rMin = cut + 1;
   } else if (axis === 'g') {
-    box1.gMax = median;
-    box2.gMin = median + 1;
+    box1.gMax = cut;
+    box2.gMin = cut + 1;
   } else {
-    box1.bMax = median;
-    box2.bMin = median + 1;
+    box1.bMax = cut;
+    box2.bMin = cut + 1;
   }
 
   for (const [index, count] of box.histogram) {
     const { r, g, b } = dequantize(index);
     const value = axis === 'r' ? r : axis === 'g' ? g : b;
-    if (value <= median) {
+    if (value <= cut) {
       box1.histogram.set(index, (box1.histogram.get(index) || 0) + count);
       box1.population += count;
     } else {

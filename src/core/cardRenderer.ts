@@ -1,7 +1,7 @@
-import { Canvas, loadImage, FontLibrary } from 'skia-canvas';
+import { Canvas, loadImage } from 'skia-canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import { CardOptions, ColorInfo, ProcessResult, RGB } from './types';
+import { CardOptions, ProcessResult, RGB } from './types';
 import { loadImageAsRGB, cropBlackBars, rgbToThumbnail } from './imageLoader';
 import { extractPalette } from './paletteExtractor';
 
@@ -22,6 +22,24 @@ function textColorFor(bg: RGB): string {
   return lum > 140 ? '#0F0F0F' : '#F5F5F5';
 }
 
+/** 画布上的主文字颜色（标题 / HEX） */
+function inkColor(bg: RGB): string {
+  const lum = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
+  return lum > 140 ? '#1A1A1A' : '#EBEBEB';
+}
+
+/** 分隔线颜色 */
+function separatorColor(bg: RGB): string {
+  const lum = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
+  return lum > 140 ? '#D4D4D8' : '#3C3C40';
+}
+
+/** 色块描边颜色 */
+function swatchBorderColor(bg: RGB): string {
+  const lum = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
+  return lum > 140 ? '#C0C0C4' : '#505054';
+}
+
 /**
  * RGB → CSS 颜色字符串
  */
@@ -31,6 +49,10 @@ function rgbCss(rgb: RGB): string {
 
 /**
  * 为单张图片生成色卡
+ *
+ * 版式自适应：
+ *   - 横版 / 方版（宽 ≥ 高）：上图下色块横排
+ *   - 竖版（高 > 宽）：上图下色块竖排（每行：色块 + 占比 + HEX）
  *
  * @param sourcePath 原图路径
  * @param options 生成选项
@@ -63,9 +85,29 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
       throw new Error('未能从图片中提取到任何主色');
     }
 
-    // 4. 用 sharp 生成缩略图 PNG Buffer（作为合成素材）
+    // 4. 画布与主题色
+    const canvas = new Canvas(cardWidth, cardHeight);
+    const ctx = canvas.getContext('2d');
+    const ink = inkColor(background);
+    const sep = separatorColor(background);
+    const border = swatchBorderColor(background);
+    const isPortrait = cardHeight > cardWidth;
+
+    // 背景
+    ctx.fillStyle = rgbCss(background);
+    ctx.fillRect(0, 0, cardWidth, cardHeight);
+
+    // 标题
+    const title = titleText ?? path.basename(sourcePath, path.extname(sourcePath));
+    ctx.fillStyle = ink;
+    ctx.font = `bold 30px ${FONT_FAMILY}`;
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, PADDING, 18);
+
+    // 5. 缩略图区
     const imgAreaTop = 70;
-    const imgAreaBottom = Math.floor(cardHeight * 0.66);
+    const imgAreaRatio = isPortrait ? 0.45 : 0.66;
+    const imgAreaBottom = Math.floor(cardHeight * imgAreaRatio);
     const imgAreaHeight = imgAreaBottom - imgAreaTop;
     const thumbBuffer = await rgbToThumbnail(
       work.data,
@@ -74,75 +116,87 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
       cardWidth - PADDING * 2,
       imgAreaHeight
     );
-
-    // 5. skia-canvas 绘制色卡
-    const canvas = new Canvas(cardWidth, cardHeight);
-    const ctx = canvas.getContext('2d');
-
-    // 背景
-    ctx.fillStyle = rgbCss(background);
-    ctx.fillRect(0, 0, cardWidth, cardHeight);
-
-    // 标题
-    const title = titleText ?? path.basename(sourcePath, path.extname(sourcePath));
-    ctx.fillStyle = '#EBEBEB';
-    ctx.font = `bold 30px ${FONT_FAMILY}`;
-    ctx.textBaseline = 'top';
-    ctx.fillText(title, PADDING, 18);
-
-    // 嵌入缩略图
     const thumbImage = await loadImage(thumbBuffer);
-    const thumbWidth = thumbImage.width;
-    const thumbHeight = thumbImage.height;
-    const thumbX = PADDING;
-    const thumbY = imgAreaTop + Math.floor((imgAreaHeight - thumbHeight) / 2);
-    ctx.drawImage(thumbImage, thumbX, thumbY, thumbWidth, thumbHeight);
+    const thumbX = PADDING + Math.floor((cardWidth - PADDING * 2 - thumbImage.width) / 2);
+    const thumbY = imgAreaTop + Math.floor((imgAreaHeight - thumbImage.height) / 2);
+    ctx.drawImage(thumbImage, thumbX, thumbY, thumbImage.width, thumbImage.height);
 
     // 分隔线
     const sepY = imgAreaBottom + 10;
-    ctx.strokeStyle = '#3C3C40';
+    ctx.strokeStyle = sep;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(PADDING, sepY);
     ctx.lineTo(cardWidth - PADDING, sepY);
     ctx.stroke();
 
-    // 色块区
+    // 6. 色块区
     const swTop = sepY + 25;
-    const swBottom = cardHeight - 50;
-    const swHeight = swBottom - swTop - 50; // 底部留 50 给 HEX 文字
-    const gap = 16;
+    const swBottom = cardHeight - PADDING;
     const availWidth = cardWidth - PADDING * 2;
-    const swWidth = Math.floor((availWidth - gap * (colors.length - 1)) / colors.length);
 
-    colors.forEach((color, i) => {
-      const x0 = PADDING + i * (swWidth + gap);
-      const y0 = swTop;
+    if (isPortrait) {
+      // 竖排：每行 色块 + 占比 + HEX
+      const rowGap = 12;
+      const rowHeight = Math.floor((swBottom - swTop - rowGap * (colors.length - 1)) / colors.length);
+      const blockWidth = Math.min(rowHeight, Math.floor(availWidth * 0.4));
 
-      // 色块
-      ctx.fillStyle = color.hex;
-      ctx.fillRect(x0, y0, swWidth, swHeight);
+      colors.forEach((color, i) => {
+        const y0 = swTop + i * (rowHeight + rowGap);
+        const x0 = PADDING;
 
-      // 色块边框
-      ctx.strokeStyle = '#505054';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x0, y0, swWidth, swHeight);
+        ctx.fillStyle = color.hex;
+        ctx.fillRect(x0, y0, blockWidth, rowHeight);
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x0, y0, blockWidth, rowHeight);
 
-      // 占比文字（色块内）
-      const pct = `${(color.ratio * 100).toFixed(1)}%`;
-      ctx.fillStyle = textColorFor(color.rgb);
-      ctx.font = `18px ${FONT_FAMILY}`;
-      ctx.textBaseline = 'top';
-      ctx.fillText(pct, x0 + 10, y0 + 8);
+        // 占比（色块内）
+        const pct = `${(color.ratio * 100).toFixed(1)}%`;
+        ctx.fillStyle = textColorFor(color.rgb);
+        ctx.font = `16px ${FONT_FAMILY}`;
+        ctx.textBaseline = 'top';
+        ctx.fillText(pct, x0 + 8, y0 + 6);
 
-      // HEX 文字（色块下方）
-      ctx.fillStyle = '#EBEBEB';
-      ctx.font = `26px ${FONT_FAMILY}`;
-      ctx.textBaseline = 'top';
-      ctx.fillText(color.hex, x0, y0 + swHeight + 10);
-    });
+        // HEX（色块右侧，垂直居中）
+        ctx.fillStyle = ink;
+        ctx.font = `24px ${FONT_FAMILY}`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(color.hex, x0 + blockWidth + 20, y0 + rowHeight / 2);
+      });
+    } else {
+      // 横排：N 列色块 + 占比 + HEX
+      const gap = 16;
+      const hexLineHeight = 40;
+      const swHeight = swBottom - swTop - hexLineHeight;
+      const swWidth = Math.floor((availWidth - gap * (colors.length - 1)) / colors.length);
 
-    // 6. 保存 PNG
+      colors.forEach((color, i) => {
+        const x0 = PADDING + i * (swWidth + gap);
+        const y0 = swTop;
+
+        ctx.fillStyle = color.hex;
+        ctx.fillRect(x0, y0, swWidth, swHeight);
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x0, y0, swWidth, swHeight);
+
+        // 占比（色块内）
+        const pct = `${(color.ratio * 100).toFixed(1)}%`;
+        ctx.fillStyle = textColorFor(color.rgb);
+        ctx.font = `18px ${FONT_FAMILY}`;
+        ctx.textBaseline = 'top';
+        ctx.fillText(pct, x0 + 10, y0 + 8);
+
+        // HEX（色块下方）
+        ctx.fillStyle = ink;
+        ctx.font = `26px ${FONT_FAMILY}`;
+        ctx.textBaseline = 'top';
+        ctx.fillText(color.hex, x0, y0 + swHeight + 10);
+      });
+    }
+
+    // 7. 保存 PNG
     const outDir = path.dirname(outputPath);
     if (!fs.existsSync(outDir)) {
       fs.mkdirSync(outDir, { recursive: true });

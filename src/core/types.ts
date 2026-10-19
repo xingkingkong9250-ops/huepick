@@ -21,6 +21,39 @@ export interface ColorInfo {
   population: number;
 }
 
+/** HSL 颜色值（h: 0~360，s/l: 0~1） */
+export interface HSL {
+  h: number;
+  s: number;
+  l: number;
+}
+
+/** 配色规则 */
+export type HarmonyRule =
+  | 'complementary'
+  | 'analogous'
+  | 'triadic'
+  | 'splitComplementary'
+  | 'monochromatic';
+
+/** 一组配色方案（基于主色按规则生成） */
+export interface HarmonyScheme {
+  rule: HarmonyRule;
+  /** 方案展示名（中文） */
+  label: string;
+  /** 方案包含的颜色（含基准色，第 0 位为基准色） */
+  colors: RGB[];
+}
+
+/** 色卡模板 */
+export type TemplateId = 'landscape' | 'portrait' | 'square' | 'custom';
+
+/** 色卡主题 */
+export type ThemeId = 'dark' | 'light';
+
+/** 导出格式 */
+export type ExportFormat = 'css' | 'scss' | 'tailwind' | 'json';
+
 /** 色卡生成选项 */
 export interface CardOptions {
   /** 主色数量，默认 6 */
@@ -51,6 +84,10 @@ export interface ProcessResult {
   error?: string;
   /** 提取到的主色 */
   colors?: ColorInfo[];
+  /** 成功时生成的配色方案 */
+  harmonies?: HarmonyScheme[];
+  /** 成功时额外导出的文件路径列表 */
+  exportedFiles?: string[];
 }
 
 /** 批量处理汇总 */
