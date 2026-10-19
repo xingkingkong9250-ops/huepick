@@ -158,6 +158,7 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
       background: bg,
       outputPath: outPath,
       outputFormat,
+      template,
     });
 
     if (!result.success) {

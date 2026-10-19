@@ -10,6 +10,9 @@ export const TEMPLATE_SIZES: Record<Exclude<TemplateId, 'custom'>, { width: numb
   landscape: { width: 1920, height: 1080 },
   portrait: { width: 1080, height: 1920 },
   square: { width: 1080, height: 1080 },
+  compact: { width: 1200, height: 800 },
+  palette: { width: 1200, height: 240 },
+  thumb: { width: 800, height: 450 },
 };
 
 /** 主题背景色 */

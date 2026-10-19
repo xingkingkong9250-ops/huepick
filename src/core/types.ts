@@ -46,7 +46,7 @@ export interface HarmonyScheme {
 }
 
 /** 色卡模板 */
-export type TemplateId = 'landscape' | 'portrait' | 'square' | 'custom';
+export type TemplateId = 'landscape' | 'portrait' | 'square' | 'compact' | 'palette' | 'thumb' | 'custom';
 
 /** 色卡主题 */
 export type ThemeId = 'dark' | 'light';
@@ -72,6 +72,8 @@ export interface CardOptions {
   outputPath: string;
   /** 输出格式 'jpg' | 'png'，默认 'jpg' */
   outputFormat?: 'jpg' | 'png';
+  /** 模板 id，用于 renderer 选择版式分支 */
+  template?: TemplateId;
 }
 
 /** 单张图片处理结果 */

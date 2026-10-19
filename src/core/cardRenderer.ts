@@ -1,7 +1,7 @@
 import { Canvas, loadImage } from 'skia-canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import { CardOptions, ProcessResult, RGB } from './types';
+import { CardOptions, ProcessResult, RGB, TemplateId } from './types';
 import { loadImageAsRGB, cropBlackBars, rgbToThumbnail } from './imageLoader';
 import { extractPalette } from './paletteExtractor';
 
@@ -68,6 +68,7 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
     titleText,
     outputPath,
     outputFormat = 'jpg',
+    template = 'landscape',
   } = options;
 
   try {
@@ -86,13 +87,18 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
       throw new Error('未能从图片中提取到任何主色');
     }
 
-    // 4. 画布与主题色
+    // 4. 画布缩放因子（相对 1920 宽的基准字体/间距）
+    const scale = Math.max(0.5, Math.min(1, cardWidth / 1920));
+    const pad = Math.max(16, Math.round(PADDING * scale));
+    const isPalette = template === 'palette';
+    const isPortrait = !isPalette && cardHeight > cardWidth;
+
+    // 5. 画布与主题色
     const canvas = new Canvas(cardWidth, cardHeight);
     const ctx = canvas.getContext('2d');
     const ink = inkColor(background);
     const sep = separatorColor(background);
     const border = swatchBorderColor(background);
-    const isPortrait = cardHeight > cardWidth;
 
     // 背景
     ctx.fillStyle = rgbCss(background);
@@ -100,51 +106,88 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
 
     // 标题
     const title = titleText ?? path.basename(sourcePath, path.extname(sourcePath));
+    const titleFont = `bold ${Math.max(14, Math.round(30 * scale))}px ${FONT_FAMILY}`;
     ctx.fillStyle = ink;
-    ctx.font = `bold 30px ${FONT_FAMILY}`;
+    ctx.font = titleFont;
     ctx.textBaseline = 'top';
-    ctx.fillText(title, PADDING, 18);
+    ctx.fillText(title, pad, Math.round(14 * scale));
 
-    // 5. 缩略图区
-    const imgAreaTop = 70;
-    const imgAreaRatio = isPortrait ? 0.45 : 0.66;
-    const imgAreaBottom = Math.floor(cardHeight * imgAreaRatio);
-    const imgAreaHeight = imgAreaBottom - imgAreaTop;
-    const thumbBuffer = await rgbToThumbnail(
-      work.data,
-      work.width,
-      work.height,
-      cardWidth - PADDING * 2,
-      imgAreaHeight
-    );
-    const thumbImage = await loadImage(thumbBuffer);
-    const thumbX = PADDING + Math.floor((cardWidth - PADDING * 2 - thumbImage.width) / 2);
-    const thumbY = imgAreaTop + Math.floor((imgAreaHeight - thumbImage.height) / 2);
-    ctx.drawImage(thumbImage, thumbX, thumbY, thumbImage.width, thumbImage.height);
+    // 6. 缩略图区（palette 模式跳过，compact/thumb 缩小占比）
+    let sepY;
+    if (isPalette) {
+      sepY = Math.round(40 * scale);  // 仅保留标题 + 分隔线
+    } else {
+      const imgTop = Math.round(54 * scale);
+      let imgAreaRatio = isPortrait ? 0.45 : 0.66;
+      if (template === 'compact') imgAreaRatio = 0.45;
+      if (template === 'thumb') imgAreaRatio = 0.4;
+      const imgBottom = Math.floor(cardHeight * imgAreaRatio);
+      const imgHeight = imgBottom - imgTop;
+      const thumbBuffer = await rgbToThumbnail(
+        work.data, work.width, work.height,
+        cardWidth - pad * 2, imgHeight
+      );
+      const thumbImage = await loadImage(thumbBuffer);
+      const thumbX = pad + Math.floor((cardWidth - pad * 2 - thumbImage.width) / 2);
+      const thumbY = imgTop + Math.floor((imgHeight - thumbImage.height) / 2);
+      ctx.drawImage(thumbImage, thumbX, thumbY, thumbImage.width, thumbImage.height);
+      sepY = imgBottom + Math.round(10 * scale);
+    }
 
     // 分隔线
-    const sepY = imgAreaBottom + 10;
     ctx.strokeStyle = sep;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(PADDING, sepY);
-    ctx.lineTo(cardWidth - PADDING, sepY);
+    ctx.moveTo(pad, sepY);
+    ctx.lineTo(cardWidth - pad, sepY);
     ctx.stroke();
 
-    // 6. 色块区
-    const swTop = sepY + 25;
-    const swBottom = cardHeight - PADDING;
-    const availWidth = cardWidth - PADDING * 2;
+    // 7. 色块区
+    const swTop = sepY + Math.round(22 * scale);
+    const swBottom = cardHeight - pad;
+    const availWidth = cardWidth - pad * 2;
 
-    if (isPortrait) {
+    // palette 模式：纯色板横条（不区分竖排/横排）
+    if (isPalette) {
+      const gap = Math.round(10 * scale);
+      const minSwatchW = Math.round(100 * scale);
+      const cols = Math.max(1, Math.min(colors.length, Math.floor((availWidth + gap) / (minSwatchW + gap))));
+      const rows = Math.ceil(colors.length / cols);
+      const swWidth = Math.floor((availWidth - gap * (cols - 1)) / cols);
+      const blockH = Math.floor((swBottom - swTop - gap * (rows - 1)) / rows);
+      const hexSize = Math.max(12, Math.round(18 * scale));
+
+      colors.forEach((color, i) => {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const x0 = pad + col * (swWidth + gap);
+        const y0 = swTop + row * (blockH + gap);
+
+        ctx.fillStyle = color.hex;
+        ctx.fillRect(x0, y0, swWidth, blockH);
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x0, y0, swWidth, blockH);
+
+        ctx.fillStyle = textColorFor(color.rgb);
+        ctx.font = `${Math.max(10, Math.round(11 * scale))}px ${FONT_FAMILY}`;
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${(color.ratio * 100).toFixed(1)}%`, x0 + 6, y0 + 4);
+
+        ctx.fillStyle = ink;
+        ctx.font = `${hexSize}px ${FONT_FAMILY}`;
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(color.hex, x0 + 6, y0 + blockH - 4);
+      });
+    } else if (isPortrait) {
       // 竖排：每行 色块 + 占比 + HEX
-      const rowGap = 12;
+      const rowGap = Math.round(12 * scale);
       const rowHeight = Math.floor((swBottom - swTop - rowGap * (colors.length - 1)) / colors.length);
       const blockWidth = Math.min(rowHeight, Math.floor(availWidth * 0.4));
 
       colors.forEach((color, i) => {
         const y0 = swTop + i * (rowHeight + rowGap);
-        const x0 = PADDING;
+        const x0 = pad;
 
         ctx.fillStyle = color.hex;
         ctx.fillRect(x0, y0, blockWidth, rowHeight);
@@ -152,36 +195,33 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
         ctx.lineWidth = 1;
         ctx.strokeRect(x0, y0, blockWidth, rowHeight);
 
-        // 占比（色块内）
-        const pct = `${(color.ratio * 100).toFixed(1)}%`;
         ctx.fillStyle = textColorFor(color.rgb);
-        ctx.font = `16px ${FONT_FAMILY}`;
+        ctx.font = `${Math.max(12, Math.round(16 * scale))}px ${FONT_FAMILY}`;
         ctx.textBaseline = 'top';
-        ctx.fillText(pct, x0 + 8, y0 + 6);
+        ctx.fillText(`${(color.ratio * 100).toFixed(1)}%`, x0 + Math.round(8 * scale), y0 + Math.round(6 * scale));
 
-        // HEX（色块右侧，垂直居中）
         ctx.fillStyle = ink;
-        ctx.font = `24px ${FONT_FAMILY}`;
+        ctx.font = `${Math.max(14, Math.round(24 * scale))}px ${FONT_FAMILY}`;
         ctx.textBaseline = 'middle';
-        ctx.fillText(color.hex, x0 + blockWidth + 20, y0 + rowHeight / 2);
+        ctx.fillText(color.hex, x0 + blockWidth + Math.round(20 * scale), y0 + rowHeight / 2);
       });
     } else {
-      // 横排 / 方排：自动网格（一行放不下自动换行，保证 HEX 可读）
-      const gap = 16;
-      const hexLineHeight = 40;
-      const minSwatchWidth = 130;  // 保证 HEX 文本有足够宽度
+      // 横排 / 方排 / compact / thumb：自动网格
+      const gap = Math.round(16 * scale);
+      const hexLineH = Math.round(36 * scale);
+      const minSwW = Math.round(130 * scale);
 
-      const cols = Math.max(1, Math.min(colors.length, Math.floor((availWidth + gap) / (minSwatchWidth + gap))));
+      const cols = Math.max(1, Math.min(colors.length, Math.floor((availWidth + gap) / (minSwW + gap))));
       const rows = Math.ceil(colors.length / cols);
 
       const swWidth = Math.floor((availWidth - gap * (cols - 1)) / cols);
       const blockHeight = Math.floor((swBottom - swTop - gap * (rows - 1)) / rows);
-      const swHeight = blockHeight - hexLineHeight;
+      const swHeight = blockHeight - hexLineH;
 
       colors.forEach((color, i) => {
         const row = Math.floor(i / cols);
         const col = i % cols;
-        const x0 = PADDING + col * (swWidth + gap);
+        const x0 = pad + col * (swWidth + gap);
         const y0 = swTop + row * (blockHeight + gap);
 
         ctx.fillStyle = color.hex;
@@ -190,18 +230,15 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
         ctx.lineWidth = 1;
         ctx.strokeRect(x0, y0, swWidth, swHeight);
 
-        // 占比（色块内）
-        const pct = `${(color.ratio * 100).toFixed(1)}%`;
         ctx.fillStyle = textColorFor(color.rgb);
-        ctx.font = `18px ${FONT_FAMILY}`;
+        ctx.font = `${Math.max(12, Math.round(18 * scale))}px ${FONT_FAMILY}`;
         ctx.textBaseline = 'top';
-        ctx.fillText(pct, x0 + 10, y0 + 8);
+        ctx.fillText(`${(color.ratio * 100).toFixed(1)}%`, x0 + Math.round(10 * scale), y0 + Math.round(8 * scale));
 
-        // HEX（色块下方）
         ctx.fillStyle = ink;
-        ctx.font = `26px ${FONT_FAMILY}`;
+        ctx.font = `${Math.max(14, Math.round(26 * scale))}px ${FONT_FAMILY}`;
         ctx.textBaseline = 'top';
-        ctx.fillText(color.hex, x0, y0 + swHeight + 10);
+        ctx.fillText(color.hex, x0, y0 + swHeight + Math.round(10 * scale));
       });
     }
 
