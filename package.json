@@ -146,13 +146,13 @@
                                                                                                                       ]
                                                                                                          },
                                                                                                "default":  [
-                                                                                                               "css"
+                                                                                                               "json"
                                                                                                            ],
                                                                                                "description":  "%cfg.exportFormats%"
                                                                                            },
                                                                  "huepick.exportHarmony":  {
                                                                                                "type":  "boolean",
-                                                                                               "default":  true,
+                                                                                               "default":  false,
                                                                                                "description":  "%cfg.exportHarmony%"
                                                                                            }
                                                              }
