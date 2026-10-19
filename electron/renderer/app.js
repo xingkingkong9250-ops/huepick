@@ -64,28 +64,34 @@ function readEntry(entry) {
 async function pathsFromDrag(e) {
   const paths = [];
   const items = e.dataTransfer.items;
+  const files = e.dataTransfer.files;
 
-  // 优先用 items（能拿到目录）
+  console.log('[HuePick.drag] items.length:', items?.length, 'files.length:', files?.length);
+
+  // 路径 A：优先 items + webkitGetAsEntry（能处理文件夹）
   if (items && items.length > 0 && items[0].webkitGetAsEntry) {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.kind !== 'file') continue;
       const entry = item.webkitGetAsEntry();
       if (!entry) continue;
-      const files = await readEntry(entry);
-      for (const f of files) {
-        const p = getFilePath(f);
-        if (p && isImagePath(p)) paths.push(p);
-      }
+      console.log('[HuePick.drag] item', i, 'kind=', item.kind, 'entry.isFile=', entry.isFile, 'entry.name=', entry.name);
+      const f = await new Promise((resolve) => entry.file ? entry.file(resolve, () => resolve(null)) : resolve(null));
+      if (!f) continue;
+      const p = getFilePath(f);
+      console.log('[HuePick.drag]   resolved path:', p);
+      if (p && isImagePath(p)) paths.push(p);
     }
     return paths;
   }
 
-  // 回退：只用 files（文件模式）
-  const files = e.dataTransfer.files;
-  for (let i = 0; i < files.length; i++) {
-    const p = getFilePath(files[i]);
-    if (p && isImagePath(p)) paths.push(p);
+  // 路径 B：回退 files（多文件拖拽场景）
+  if (files && files.length > 0) {
+    for (let i = 0; i < files.length; i++) {
+      const p = getFilePath(files[i]);
+      console.log('[HuePick.drag] file', i, 'path:', p);
+      if (p && isImagePath(p)) paths.push(p);
+    }
   }
   return paths;
 }

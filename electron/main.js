@@ -6,11 +6,11 @@ const path = require('path');
 const fs = require('fs');
 
 // 核心模块（共享 VS Code 扩展的编译产物）
-let generateCard, generateHarmonySchemes, buildExportFile, TEMPLATE_SIZES;
+let generateCard, generateHarmonies, exportPalettes, TEMPLATE_SIZES;
 try {
   ({ generateCard } = require('../out/core/cardRenderer'));
-  ({ generateHarmonySchemes } = require('../out/core/colorHarmony'));
-  ({ buildExportFile } = require('../out/core/exporter'));
+  ({ generateHarmonies } = require('../out/core/colorHarmony'));
+  ({ exportPalettes } = require('../out/core/exporter'));
   ({ TEMPLATE_SIZES } = require('../out/core/presets'));
   console.log('[HuePick] core modules loaded OK');
 } catch (err) {
@@ -140,32 +140,16 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
     }
 
     // 5. 导出辅助格式（配色规则 + CSS/SCSS/Tailwind/JSON）
-    const extraFiles = [];
+    let extraFiles = [];
     const allColors = result.colors || [];
-    if (allColors.length > 0) {
-      const primary = allColors[0];
-      if (exportHarmony) {
-        const schemes = generateHarmonySchemes(primary.rgb);
-        schemes.forEach(s => {
-          const cssPath = path.join(dir, `${base}_${s.name}.css`);
-          const css = buildExportFile(allColors, 'css', { title: `${base} · ${s.label}` });
-          fs.writeFileSync(cssPath, css, 'utf8');
-          extraFiles.push(cssPath);
-        });
-      }
-      for (const fmt of exportFormats) {
-        if (fmt === 'css' && !exportHarmony) {
-          const css = buildExportFile(allColors, 'css', { title: base });
-          const p = path.join(dir, `${base}_palette.css`);
-          fs.writeFileSync(p, css, 'utf8');
-          extraFiles.push(p);
-        } else if (fmt !== 'css') {
-          const content = buildExportFile(allColors, fmt, { title: base });
-          const ext = fmt === 'tailwind' ? 'js' : fmt;
-          const p = path.join(dir, `${base}_palette.${ext}`);
-          fs.writeFileSync(p, content, 'utf8');
-          extraFiles.push(p);
-        }
+    if (allColors.length > 0 && exportPalettes) {
+      const harmonies = exportHarmony && generateHarmonies
+        ? generateHarmonies(allColors[0].rgb)
+        : [];
+      try {
+        extraFiles = exportPalettes(sourcePath, outPath, allColors, harmonies, exportFormats);
+      } catch (e) {
+        console.error('[HuePick] exportPalettes error:', e.message);
       }
     }
 
