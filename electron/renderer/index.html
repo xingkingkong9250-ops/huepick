@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' file: data:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>HuePick — 拾色</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🎨</span>
+      <span class="name">HuePick</span>
+      <span class="ver" id="ver">v0.5.0</span>
+    </div>
+    <div class="actions">
+      <button id="btn-files">选择图片</button>
+      <button id="btn-folder">选择文件夹</button>
+      <button id="btn-clear" class="ghost">清空</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 左栏：文件列表 -->
+    <section class="panel left">
+      <div id="drop" class="dropzone">
+        <div class="drop-inner">
+          <div class="drop-icon">⬇</div>
+          <div class="drop-hint">拖拽图片或文件夹到此处</div>
+          <div class="drop-hint-sm">支持 PNG / JPG / WEBP / BMP / TIFF</div>
+        </div>
+      </div>
+      <div class="file-list" id="file-list"></div>
+    </section>
+
+    <!-- 右栏：参数 + 预览 -->
+    <section class="panel right">
+      <div class="params">
+        <div class="param-row">
+          <label>主色数</label>
+          <select id="p-colors">
+            <option>3</option><option>4</option><option>5</option>
+            <option selected>6</option><option>7</option><option>8</option>
+            <option>9</option><option>10</option><option>11</option><option>12</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label>模板</label>
+          <select id="p-template">
+            <option value="landscape" selected>横版 1920×1080</option>
+            <option value="portrait">竖版 1080×1920</option>
+            <option value="square">方版 1080×1080</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label>主题</label>
+          <select id="p-theme">
+            <option value="dark" selected>深色</option>
+            <option value="light">浅色</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label>裁黑边</label>
+          <input type="checkbox" id="p-crop" checked />
+        </div>
+        <div class="param-row">
+          <label>导出格式</label>
+          <div class="check-group">
+            <label><input type="checkbox" class="p-fmt" value="css" checked /> CSS</label>
+            <label><input type="checkbox" class="p-fmt" value="scss" /> SCSS</label>
+            <label><input type="checkbox" class="p-fmt" value="tailwind" /> Tailwind</label>
+            <label><input type="checkbox" class="p-fmt" value="json" /> JSON</label>
+          </div>
+        </div>
+        <div class="param-row">
+          <label>配色规则</label>
+          <input type="checkbox" id="p-harmony" checked />
+        </div>
+        <button id="btn-generate" class="primary">
+          <span id="gen-text">🚀 生成色卡</span>
+        </button>
+      </div>
+
+      <div class="preview" id="preview">
+        <div class="preview-empty">
+          <div class="pe-icon">🎯</div>
+          <div>选择图片后点击生成</div>
+        </div>
+      </div>
+
+      <div class="log" id="log"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

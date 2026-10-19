@@ -8,9 +8,10 @@ REM run.bat install       -> npm install
 REM run.bat compile       -> tsc compile
 REM run.bat test          -> unit + e2e tests
 REM run.bat package       -> build vsix
-REM run.bat all           -> compile + test + package
+REM run.bat dist          -> build Electron .exe installer
+REM run.bat dev           -> launch Electron dev window
+REM run.bat all           -> compile + test + vsix + dist
 REM run.bat install-vsix  -> install vsix into editor
-REM run.bat dev           -> start F5 dev host
 
 if "%~1"=="" goto interactive
 cd /d "%~dp0"

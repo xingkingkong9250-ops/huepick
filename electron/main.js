@@ -1,0 +1,185 @@
+// Electron 主进程 —— HuePick 桌面版
+// 复用 out/core 下编译好的核心模块
+
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+// 核心模块（共享 VS Code 扩展的编译产物）
+const { generateCard } = require('../out/core/cardRenderer');
+const { generateHarmonySchemes } = require('../out/core/colorHarmony');
+const { buildExportFile } = require('../out/core/exporter');
+const { DEFAULT_PRESETS } = require('../out/core/presets');
+
+let mainWindow = null;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    minWidth: 960,
+    minHeight: 640,
+    title: 'HuePick — 拾色',
+    backgroundColor: '#1a1a1e',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  mainWindow.setMenu(null);
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+
+  // 开发时可开 DevTools
+  // mainWindow.webContents.openDevTools();
+}
+
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+// ========== IPC Handlers ==========
+
+/** 选择文件夹 → 返回图片文件列表 */
+ipcMain.handle('pick-folder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: '选择包含图片的文件夹',
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  const dir = result.filePaths[0];
+  const exts = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'];
+  const files = fs.readdirSync(dir)
+    .filter(f => exts.includes(path.extname(f).toLowerCase()))
+    .map(f => path.join(dir, f));
+  return { dir, files };
+});
+
+/** 选择文件（可多选） */
+ipcMain.handle('pick-files', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tif', 'tiff'] },
+    ],
+    title: '选择图片',
+  });
+  if (result.canceled) return null;
+  return result.filePaths;
+});
+
+/** 主入口：生成色卡 */
+ipcMain.handle('generate-card', async (_evt, payload) => {
+  const {
+    sourcePath,
+    numColors = 6,
+    cropBars = true,
+    template = 'landscape',
+    customWidth = 1920,
+    customHeight = 1080,
+    theme = 'dark',
+    exportFormats = ['css'],
+    exportHarmony = true,
+    outputSuffix = '色卡',
+  } = payload;
+
+  try {
+    // 1. 确定色卡尺寸
+    let w = customWidth, h = customHeight;
+    if (template !== 'custom') {
+      const preset = DEFAULT_PRESETS.find(p => p.id === template);
+      if (preset) { w = preset.width; h = preset.height; }
+    }
+
+    // 2. 主题背景色
+    const bg = theme === 'light'
+      ? { r: 245, g: 245, b: 247 }
+      : { r: 24, g: 24, b: 26 };
+
+    // 3. 输出路径
+    const dir = path.dirname(sourcePath);
+    const base = path.basename(sourcePath, path.extname(sourcePath));
+    const outPath = path.join(dir, `${base}_${outputSuffix}.png`);
+
+    // 4. 生成色卡
+    const result = await generateCard(sourcePath, {
+      numColors,
+      cropBars,
+      cardWidth: w,
+      cardHeight: h,
+      background: bg,
+      outputPath: outPath,
+    });
+
+    if (!result.success) {
+      return { ok: false, error: result.error };
+    }
+
+    // 5. 导出辅助格式（配色规则 + CSS/SCSS/Tailwind/JSON）
+    const extraFiles = [];
+    const allColors = result.colors || [];
+    if (allColors.length > 0) {
+      const primary = allColors[0];
+      if (exportHarmony) {
+        const schemes = generateHarmonySchemes(primary.rgb);
+        schemes.forEach(s => {
+          const cssPath = path.join(dir, `${base}_${s.name}.css`);
+          const css = buildExportFile(allColors, 'css', { title: `${base} · ${s.label}` });
+          fs.writeFileSync(cssPath, css, 'utf8');
+          extraFiles.push(cssPath);
+        });
+      }
+      for (const fmt of exportFormats) {
+        if (fmt === 'css' && !exportHarmony) {
+          const css = buildExportFile(allColors, 'css', { title: base });
+          const p = path.join(dir, `${base}_palette.css`);
+          fs.writeFileSync(p, css, 'utf8');
+          extraFiles.push(p);
+        } else if (fmt !== 'css') {
+          const content = buildExportFile(allColors, fmt, { title: base });
+          const ext = fmt === 'tailwind' ? 'js' : fmt;
+          const p = path.join(dir, `${base}_palette.${ext}`);
+          fs.writeFileSync(p, content, 'utf8');
+          extraFiles.push(p);
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      cardPath: outPath,
+      colors: result.colors,
+      extraFiles,
+    };
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+});
+
+/** 用系统默认程序打开文件 */
+ipcMain.handle('open-file', async (_evt, filePath) => {
+  const { shell } = require('electron');
+  await shell.openPath(filePath);
+  return true;
+});
+
+/** 用资源管理器打开文件夹 */
+ipcMain.handle('show-in-folder', async (_evt, filePath) => {
+  const { shell } = require('electron');
+  shell.showItemInFolder(filePath);
+  return true;
+});
+
+/** 复制到剪贴板 */
+ipcMain.handle('copy-text', async (_evt, text) => {
+  const { clipboard } = require('electron');
+  clipboard.writeText(text);
+  return true;
+});

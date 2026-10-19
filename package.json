@@ -1,177 +1,224 @@
 {
-  "name": "huepick",
-  "displayName": "%displayName%",
-  "description": "%description%",
-  "version": "0.5.0",
-  "publisher": "huepick-studio",
-  "license": "MIT",
-  "keywords": [
-    "color",
-    "palette",
-    "color-picker",
-    "color-card",
-    "image-analysis",
-    "palette-export",
-    "配色",
-    "色卡",
-    "取色"
-  ],
-  "engines": {
-    "vscode": "^1.80.0"
-  },
-  "categories": [
-    "Visualization",
-    "Other"
-  ],
-  "icon": "media/icon.png",
-  "galleryBanner": {
-    "color": "#1a1a1e",
-    "theme": "dark"
-  },
-  "extensionKind": [
-    "workspace"
-  ],
-  "capabilities": {
-    "untrustedWorkspaces": {
-      "supported": false
-    },
-    "virtualWorkspaces": false
-  },
-  "activationEvents": [
-    "onCommand:huepick.pickFromActiveFile",
-    "onCommand:huepick.pickFromExplorer",
-    "onCommand:huepick.pickFromFolder"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "huepick.pickFromActiveFile",
-        "title": "%cmd.pickFromActiveFile%"
-      },
-      {
-        "command": "huepick.pickFromExplorer",
-        "title": "%cmd.pickFromExplorer%"
-      },
-      {
-        "command": "huepick.pickFromFolder",
-        "title": "%cmd.pickFromFolder%"
-      }
-    ],
-    "menus": {
-      "explorer/context": [
-        {
-          "command": "huepick.pickFromExplorer",
-          "when": "explorerResourceIsFolder || resourceExtname =~ /\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$/i",
-          "group": "navigation@99"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "huepick.pickFromActiveFile",
-          "when": "resourceExtname =~ /\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$/i",
-          "group": "navigation@99"
-        }
-      ]
-    },
-    "configuration": {
-      "title": "%config.title%",
-      "properties": {
-        "huepick.numColors": {
-          "type": "number",
-          "default": 6,
-          "minimum": 3,
-          "maximum": 12,
-          "description": "%cfg.numColors%"
-        },
-        "huepick.cropBlackBars": {
-          "type": "boolean",
-          "default": true,
-          "description": "%cfg.cropBlackBars%"
-        },
-        "huepick.outputSuffix": {
-          "type": "string",
-          "default": "色卡",
-          "description": "%cfg.outputSuffix%"
-        },
-        "huepick.outputToSourceDir": {
-          "type": "boolean",
-          "default": true,
-          "description": "%cfg.outputToSourceDir%"
-        },
-        "huepick.template": {
-          "type": "string",
-          "enum": [
-            "landscape",
-            "portrait",
-            "square",
-            "custom"
-          ],
-          "default": "landscape",
-          "description": "%cfg.template%"
-        },
-        "huepick.customWidth": {
-          "type": "number",
-          "default": 1920,
-          "minimum": 400,
-          "maximum": 4096,
-          "description": "%cfg.customWidth%"
-        },
-        "huepick.customHeight": {
-          "type": "number",
-          "default": 1080,
-          "minimum": 400,
-          "maximum": 4096,
-          "description": "%cfg.customHeight%"
-        },
-        "huepick.theme": {
-          "type": "string",
-          "enum": [
-            "dark",
-            "light"
-          ],
-          "default": "dark",
-          "description": "%cfg.theme%"
-        },
-        "huepick.exportFormats": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "css",
-              "scss",
-              "tailwind",
-              "json"
-            ]
-          },
-          "default": [
-            "css"
-          ],
-          "description": "%cfg.exportFormats%"
-        },
-        "huepick.exportHarmony": {
-          "type": "boolean",
-          "default": true,
-          "description": "%cfg.exportHarmony%"
-        }
-      }
-    }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "test": "npm run compile && node --test \"out/test/**/*.test.js\"",
-    "package": "vsce package"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/vscode": "^1.80.0",
-    "@vscode/vsce": "^4.0.0",
-    "typescript": "^5.3.0"
-  },
-  "dependencies": {
-    "sharp": "^0.35.5",
-    "skia-canvas": "^4.0.0"
-  }
+    "name":  "huepick",
+    "displayName":  "%displayName%",
+    "description":  "%description%",
+    "version":  "0.5.0",
+    "publisher":  "huepick-studio",
+    "license":  "MIT",
+    "keywords":  [
+                     "color",
+                     "palette",
+                     "color-picker",
+                     "color-card",
+                     "image-analysis",
+                     "palette-export",
+                     "配色",
+                     "色卡",
+                     "取色"
+                 ],
+    "engines":  {
+                    "vscode":  "^1.80.0"
+                },
+    "categories":  [
+                       "Visualization",
+                       "Other"
+                   ],
+    "icon":  "media/icon.png",
+    "galleryBanner":  {
+                          "color":  "#1a1a1e",
+                          "theme":  "dark"
+                      },
+    "extensionKind":  [
+                          "workspace"
+                      ],
+    "capabilities":  {
+                         "untrustedWorkspaces":  {
+                                                     "supported":  false
+                                                 },
+                         "virtualWorkspaces":  false
+                     },
+    "activationEvents":  [
+                             "onCommand:huepick.pickFromActiveFile",
+                             "onCommand:huepick.pickFromExplorer",
+                             "onCommand:huepick.pickFromFolder"
+                         ],
+    "main":  "./electron/main.js",
+    "author":  "HuePick Studio \u003cdev@huepick.local\u003e",
+    "contributes":  {
+                        "commands":  [
+                                         {
+                                             "command":  "huepick.pickFromActiveFile",
+                                             "title":  "%cmd.pickFromActiveFile%"
+                                         },
+                                         {
+                                             "command":  "huepick.pickFromExplorer",
+                                             "title":  "%cmd.pickFromExplorer%"
+                                         },
+                                         {
+                                             "command":  "huepick.pickFromFolder",
+                                             "title":  "%cmd.pickFromFolder%"
+                                         }
+                                     ],
+                        "menus":  {
+                                      "explorer/context":  [
+                                                               {
+                                                                   "command":  "huepick.pickFromExplorer",
+                                                                   "when":  "explorerResourceIsFolder || resourceExtname =~ /\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$/i",
+                                                                   "group":  "navigation@99"
+                                                               }
+                                                           ],
+                                      "editor/context":  [
+                                                             {
+                                                                 "command":  "huepick.pickFromActiveFile",
+                                                                 "when":  "resourceExtname =~ /\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$/i",
+                                                                 "group":  "navigation@99"
+                                                             }
+                                                         ]
+                                  },
+                        "configuration":  {
+                                              "title":  "%config.title%",
+                                              "properties":  {
+                                                                 "huepick.numColors":  {
+                                                                                           "type":  "number",
+                                                                                           "default":  6,
+                                                                                           "minimum":  3,
+                                                                                           "maximum":  12,
+                                                                                           "description":  "%cfg.numColors%"
+                                                                                       },
+                                                                 "huepick.cropBlackBars":  {
+                                                                                               "type":  "boolean",
+                                                                                               "default":  true,
+                                                                                               "description":  "%cfg.cropBlackBars%"
+                                                                                           },
+                                                                 "huepick.outputSuffix":  {
+                                                                                              "type":  "string",
+                                                                                              "default":  "色卡",
+                                                                                              "description":  "%cfg.outputSuffix%"
+                                                                                          },
+                                                                 "huepick.outputToSourceDir":  {
+                                                                                                   "type":  "boolean",
+                                                                                                   "default":  true,
+                                                                                                   "description":  "%cfg.outputToSourceDir%"
+                                                                                               },
+                                                                 "huepick.template":  {
+                                                                                          "type":  "string",
+                                                                                          "enum":  [
+                                                                                                       "landscape",
+                                                                                                       "portrait",
+                                                                                                       "square",
+                                                                                                       "custom"
+                                                                                                   ],
+                                                                                          "default":  "landscape",
+                                                                                          "description":  "%cfg.template%"
+                                                                                      },
+                                                                 "huepick.customWidth":  {
+                                                                                             "type":  "number",
+                                                                                             "default":  1920,
+                                                                                             "minimum":  400,
+                                                                                             "maximum":  4096,
+                                                                                             "description":  "%cfg.customWidth%"
+                                                                                         },
+                                                                 "huepick.customHeight":  {
+                                                                                              "type":  "number",
+                                                                                              "default":  1080,
+                                                                                              "minimum":  400,
+                                                                                              "maximum":  4096,
+                                                                                              "description":  "%cfg.customHeight%"
+                                                                                          },
+                                                                 "huepick.theme":  {
+                                                                                       "type":  "string",
+                                                                                       "enum":  [
+                                                                                                    "dark",
+                                                                                                    "light"
+                                                                                                ],
+                                                                                       "default":  "dark",
+                                                                                       "description":  "%cfg.theme%"
+                                                                                   },
+                                                                 "huepick.exportFormats":  {
+                                                                                               "type":  "array",
+                                                                                               "items":  {
+                                                                                                             "type":  "string",
+                                                                                                             "enum":  [
+                                                                                                                          "css",
+                                                                                                                          "scss",
+                                                                                                                          "tailwind",
+                                                                                                                          "json"
+                                                                                                                      ]
+                                                                                                         },
+                                                                                               "default":  [
+                                                                                                               "css"
+                                                                                                           ],
+                                                                                               "description":  "%cfg.exportFormats%"
+                                                                                           },
+                                                                 "huepick.exportHarmony":  {
+                                                                                               "type":  "boolean",
+                                                                                               "default":  true,
+                                                                                               "description":  "%cfg.exportHarmony%"
+                                                                                           }
+                                                             }
+                                          }
+                    },
+    "scripts":  {
+                    "compile":  "tsc -p ./",
+                    "watch":  "tsc -watch -p ./",
+                    "test":  "npm run compile \u0026\u0026 node --test \"out/test/**/*.test.js\"",
+                    "dev":  "npm run compile \u0026\u0026 electron .",
+                    "dist":  "npm run compile \u0026\u0026 electron-builder --win --x64",
+                    "package-vsix":  "vsce package"
+                },
+    "build":  {
+                  "appId":  "com.huepick.app",
+                  "productName":  "HuePick",
+                  "directories":  {
+                                      "output":  "dist"
+                                  },
+                  "files":  [
+                                "electron/**/*",
+                                "out/**/*",
+                                "media/**/*",
+                                "package.json"
+                            ],
+                  "extraResources":  [
+                                         {
+                                             "from":  "node_modules/sharp",
+                                             "to":  "sharp"
+                                         },
+                                         {
+                                             "from":  "node_modules/skia-canvas",
+                                             "to":  "skia-canvas"
+                                         }
+                                     ],
+                  "win":  {
+                              "target":  [
+                                             {
+                                                 "target":  "nsis",
+                                                 "arch":  [
+                                                              "x64"
+                                                          ]
+                                             }
+                                         ],
+                              "artifactName":  "HuePick-Setup-${version}.${ext}",
+                              "signAndEditExecutable":  false,
+                              "sign":  false
+                          },
+                  "nsis":  {
+                               "oneClick":  false,
+                               "allowToChangeInstallationDirectory":  true,
+                               "createDesktopShortcut":  true,
+                               "createStartMenuShortcut":  true,
+                               "shortcutName":  "HuePick"
+                           }
+              },
+    "devDependencies":  {
+                            "@types/node":  "^22.0.0",
+                            "@types/vscode":  "^1.80.0",
+                            "@vscode/vsce":  "^4.0.0",
+                            "electron":  "^33.4.11",
+                            "electron-builder":  "^25.1.8",
+                            "typescript":  "^5.3.0"
+                        },
+    "dependencies":  {
+                         "sharp":  "^0.35.5",
+                         "skia-canvas":  "^4.0.0"
+                     }
 }
