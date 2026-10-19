@@ -114,8 +114,15 @@ function addPaths(paths) {
   paths.forEach(p => {
     if (!existing.has(p)) { state.files.push(p); added++; }
   });
-  if (added > 0) log(`+${added} 张图片`, 'ok');
+  if (added > 0) {
+    log(`+${added} 张图片`, 'ok');
+    // 首次添加时自动选中第一张，触发预览
+    if (state.selectedIdx < 0 || state.selectedIdx >= state.files.length) {
+      state.selectedIdx = 0;
+    }
+  }
   renderList();
+  triggerPreviewDebounced();
 }
 
 function renderList() {
@@ -137,10 +144,12 @@ function renderList() {
         state.files.splice(i, 1);
         if (state.selectedIdx >= state.files.length) state.selectedIdx = state.files.length - 1;
         renderList();
+        triggerPreviewDebounced();
         return;
       }
       state.selectedIdx = i;
       renderList();
+      triggerPreviewDebounced();
     });
     listEl.appendChild(div);
   });
@@ -191,24 +200,48 @@ $('#btn-clear').addEventListener('click', () => {
 function showPreviewEmpty() {
   const d = document.createElement('div');
   d.className = 'preview-empty';
-  d.innerHTML = '<div class="pe-icon">🎯</div><div>选择图片后点击生成</div>';
+  d.innerHTML = '<div class="pe-icon">🎯</div><div>选择图片后自动生成预览</div>';
   previewEl.innerHTML = '';
   previewEl.appendChild(d);
+}
+
+// ============ 生成 payload ============
+function readPayload() {
+  return {
+    numColors: parseInt($('#p-colors').value),
+    cropBars: $('#p-crop').checked,
+    template: $('#p-template').value,
+    theme: $('#p-theme').value,
+    exportFormats: [],
+    exportHarmony: false,
+  };
+}
+
+// ============ 单文件预览生成（debounce） ============
+let previewDebounce = null;
+async function generatePreview(targetFile) {
+  if (!targetFile) { showPreviewEmpty(); return; }
+  log(`预览：${targetFile.split(/[\\/]/).pop()}`, 'info');
+  try {
+    const r = await window.huepick.generateCard({ ...readPayload(), sourcePath: targetFile });
+    if (r.ok) showPreview(r);
+    else log(`预览失败：${r.error}`, 'err');
+  } catch (e) {
+    log(`预览异常：${e.message}`, 'err');
+  }
+}
+function triggerPreviewDebounced() {
+  const f = state.files[state.selectedIdx >= 0 ? state.selectedIdx : 0];
+  if (!f) return;
+  if (previewDebounce) clearTimeout(previewDebounce);
+  previewDebounce = setTimeout(() => generatePreview(f), 350);
 }
 
 // ============ 生成 ============
 $('#btn-generate').addEventListener('click', async () => {
   if (state.files.length === 0) { log('请先添加图片', 'err'); return; }
 
-  const payload = {
-    numColors: parseInt($('#p-colors').value),
-    cropBars: $('#p-crop').checked,
-    template: $('#p-template').value,
-    theme: $('#p-theme').value,
-    // 多格式导出 & 配色规则暂时关闭，后续按需释放
-    exportFormats: [],
-    exportHarmony: false,
-  };
+  const payload = readPayload();
 
   const btn = $('#btn-generate');
   btn.disabled = true;
@@ -253,12 +286,11 @@ async function showPreview(result) {
 
   const img = document.createElement('img');
   img.alt = '色卡预览';
-
-  // 用主进程生成 URL 最稳
+  const cacheBuster = `?t=${Date.now()}`;
   try {
-    img.src = await window.huepick.pathToUrl(result.cardPath);
+    img.src = await window.huepick.pathToUrl(result.cardPath) + cacheBuster;
   } catch {
-    img.src = 'file:///' + result.cardPath.replace(/\\/g, '/');
+    img.src = 'file:///' + result.cardPath.replace(/\\/g, '/') + cacheBuster;
   }
 
   img.onerror = () => log('预览图加载失败：' + result.cardPath, 'err');
@@ -303,6 +335,15 @@ async function showPreview(result) {
 renderList();
 showPreviewEmpty();
 log('HuePick 桌面版就绪（DevTools 已打开）', 'ok');
+
+// 参数变化 → debounce 自动刷新预览
+const previewTriggers = ['#p-colors', '#p-template', '#p-theme', '#p-crop'];
+previewTriggers.forEach(sel => {
+  const el = document.querySelector(sel);
+  if (!el) return;
+  el.addEventListener('change', triggerPreviewDebounced);
+  el.addEventListener('input', triggerPreviewDebounced); // number 滑块
+});
 
 // 全局错误捕获
 window.addEventListener('error', (e) => {
