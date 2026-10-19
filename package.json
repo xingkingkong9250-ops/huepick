@@ -1,0 +1,111 @@
+{
+  "name": "huepick",
+  "displayName": "拾色 HuePick",
+  "description": "分析任意图片（电影截图、原画、插画、摄影）的主色，一键生成带 HEX 标注的专业色卡图。",
+  "version": "0.2.0",
+  "publisher": "huepick-studio",
+  "license": "MIT",
+  "keywords": [
+    "color",
+    "palette",
+    "color-picker",
+    "color-card",
+    "image-analysis",
+    "配色",
+    "色卡",
+    "取色"
+  ],
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1a1a1e",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onCommand:huepick.pickFromActiveFile",
+    "onCommand:huepick.pickFromExplorer",
+    "onCommand:huepick.pickFromFolder"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "huepick.pickFromActiveFile",
+        "title": "拾色 HuePick：为当前图片生成色卡"
+      },
+      {
+        "command": "huepick.pickFromExplorer",
+        "title": "拾色 HuePick：为此图片/文件夹批量生成色卡"
+      },
+      {
+        "command": "huepick.pickFromFolder",
+        "title": "拾色 HuePick：选择文件夹批量生成色卡…"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "huepick.pickFromExplorer",
+          "when": "explorerResourceIsFolder || resourceExtname =~ /\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$/i",
+          "group": "navigation@99"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "huepick.pickFromActiveFile",
+          "when": "resourceExtname =~ /\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$/i",
+          "group": "navigation@99"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "拾色 HuePick",
+      "properties": {
+        "huepick.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Python 解释器路径（需已安装 Pillow）。"
+        },
+        "huepick.numColors": {
+          "type": "number",
+          "default": 6,
+          "minimum": 3,
+          "maximum": 12,
+          "description": "每张色卡提取的主色数量。"
+        },
+        "huepick.cropBlackBars": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动裁除电影截图上下黑边（对原画/插画无影响）。"
+        },
+        "huepick.outputSuffix": {
+          "type": "string",
+          "default": "色卡",
+          "description": "输出色卡文件名插入的后缀。"
+        },
+        "huepick.outputToSourceDir": {
+          "type": "boolean",
+          "default": true,
+          "description": "色卡是否输出到原图同目录；关闭则弹窗选择输出目录。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.3.0"
+  }
+}
