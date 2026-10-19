@@ -4,6 +4,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.5.0] - 2026-10-19
+
+### Added
+- **交互式参数选择**：运行命令时弹出快速选择，可选「使用当前设置」一键直出，或临时覆盖模板 / 主色数量 / 主题 / 导出格式（含自定义画布宽高输入校验）
+- **可取消批量**：批量处理进度条支持取消，取消后停止后续处理但保留已生成的色卡与导出文件
+- **中英双语**：新增 `package.nls.json`（英文）与 `package.nls.zh-cn.json`（简体中文），命令标题、配置说明与运行时提示自动跟随编辑器语言
+- **单元与端到端测试**：新增 `src/test/huepick.test.ts`（基于 `node:test`，15 项用例），覆盖主色提取、配色规则、导出格式、文件名规则、裁黑边，以及三种模板 × 两种主题的 skia-canvas 实际渲染与尺寸校验；新增 `npm test` 脚本
+- **打包工程化**：新增 `@vscode/vsce` 开发依赖，`npm run package` 开箱即用；新增 `extensionKind`、`capabilities`（不支持不受信任工作区）等清单字段
+
+### Fixed
+- **`.vscodeignore` 误排除依赖与介绍页**：此前排除了 `node_modules/**`（导致打包产物缺失 sharp / skia-canvas 运行依赖）与 `README.md`（导致 Marketplace 无介绍页）；现已修正为仅排除源码、测试产物与构建中间文件
+
+### Changed
+- 清单文案改为 NLS 占位符（`%key%`），支持多语言
+- `package.json` 版本升至 `0.5.0`；`@types/node` 升级至 `^22` 以支持 `node:test` 类型
+
 ## [0.4.0] - 2026-10-19
 
 ### Added

@@ -1,0 +1,18 @@
+{
+  "displayName": "HuePick",
+  "description": "Local-only image palette extractor: one-click professional color cards with HEX and ratio annotations, plus CSS/SCSS/Tailwind/JSON export. No Python required.",
+  "config.title": "HuePick",
+  "cmd.pickFromActiveFile": "HuePick: Generate color card for current image",
+  "cmd.pickFromExplorer": "HuePick: Generate color cards for this image/folder",
+  "cmd.pickFromFolder": "HuePick: Select a folder to batch generate color cards…",
+  "cfg.numColors": "Number of dominant colors extracted per color card.",
+  "cfg.cropBlackBars": "Automatically crop the top/bottom black bars of movie screenshots (no effect on artwork or illustrations).",
+  "cfg.outputSuffix": "Suffix inserted into the output color card file name.",
+  "cfg.outputToSourceDir": "Output color cards next to the source image; when disabled, a dialog asks for an output directory.",
+  "cfg.template": "Color card template: landscape 1920×1080 / portrait 1080×1920 / square 1080×1080 / custom.",
+  "cfg.customWidth": "Custom canvas width (effective when template is custom).",
+  "cfg.customHeight": "Custom canvas height (effective when template is custom).",
+  "cfg.theme": "Color card theme: dark / light (affects background, text and separator colors).",
+  "cfg.exportFormats": "Palette files exported alongside the color card (CSS variables / SCSS / Tailwind / JSON).",
+  "cfg.exportHarmony": "Whether exported palette files include harmony schemes generated from the dominant color (complementary / analogous / triadic / split-complementary / monochromatic)."
+}

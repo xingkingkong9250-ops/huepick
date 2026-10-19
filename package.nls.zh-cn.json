@@ -1,0 +1,18 @@
+{
+  "displayName": "拾色 HuePick",
+  "description": "纯本地运行的图片主色提取工具：一键生成带 HEX 与占比标注的专业色卡，并导出 CSS/SCSS/Tailwind/JSON 配色文件，无需 Python。",
+  "config.title": "拾色 HuePick",
+  "cmd.pickFromActiveFile": "拾色 HuePick：为当前图片生成色卡",
+  "cmd.pickFromExplorer": "拾色 HuePick：为此图片/文件夹批量生成色卡",
+  "cmd.pickFromFolder": "拾色 HuePick：选择文件夹批量生成色卡…",
+  "cfg.numColors": "每张色卡提取的主色数量。",
+  "cfg.cropBlackBars": "自动裁除电影截图上下黑边（对原画/插画无影响）。",
+  "cfg.outputSuffix": "输出色卡文件名插入的后缀。",
+  "cfg.outputToSourceDir": "色卡是否输出到原图同目录；关闭则弹窗选择输出目录。",
+  "cfg.template": "色卡模板：横版 1920×1080 / 竖版 1080×1920 / 方版 1080×1080 / 自定义。",
+  "cfg.customWidth": "自定义画布宽度（模板为自定义时生效）。",
+  "cfg.customHeight": "自定义画布高度（模板为自定义时生效）。",
+  "cfg.theme": "色卡主题：深色 / 浅色（影响背景、文字、分隔线颜色）。",
+  "cfg.exportFormats": "生成色卡时同步导出的配色文件格式（CSS 变量 / SCSS / Tailwind / JSON）。",
+  "cfg.exportHarmony": "导出配色文件时是否包含基于主色生成的配色方案（互补/类似/三色/分裂互补/单色）。"
+}

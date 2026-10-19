@@ -1,8 +1,8 @@
 {
   "name": "huepick",
-  "displayName": "拾色 HuePick",
-  "description": "纯本地运行的图片主色提取工具：一键生成带 HEX 与占比标注的专业色卡，无需 Python。",
-  "version": "0.4.0",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.5.0",
   "publisher": "huepick-studio",
   "license": "MIT",
   "keywords": [
@@ -11,6 +11,7 @@
     "color-picker",
     "color-card",
     "image-analysis",
+    "palette-export",
     "配色",
     "色卡",
     "取色"
@@ -27,6 +28,15 @@
     "color": "#1a1a1e",
     "theme": "dark"
   },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
   "activationEvents": [
     "onCommand:huepick.pickFromActiveFile",
     "onCommand:huepick.pickFromExplorer",
@@ -37,15 +47,15 @@
     "commands": [
       {
         "command": "huepick.pickFromActiveFile",
-        "title": "拾色 HuePick：为当前图片生成色卡"
+        "title": "%cmd.pickFromActiveFile%"
       },
       {
         "command": "huepick.pickFromExplorer",
-        "title": "拾色 HuePick：为此图片/文件夹批量生成色卡"
+        "title": "%cmd.pickFromExplorer%"
       },
       {
         "command": "huepick.pickFromFolder",
-        "title": "拾色 HuePick：选择文件夹批量生成色卡…"
+        "title": "%cmd.pickFromFolder%"
       }
     ],
     "menus": {
@@ -65,69 +75,84 @@
       ]
     },
     "configuration": {
-      "title": "拾色 HuePick",
+      "title": "%config.title%",
       "properties": {
         "huepick.numColors": {
           "type": "number",
           "default": 6,
           "minimum": 3,
           "maximum": 12,
-          "description": "每张色卡提取的主色数量。"
+          "description": "%cfg.numColors%"
         },
         "huepick.cropBlackBars": {
           "type": "boolean",
           "default": true,
-          "description": "自动裁除电影截图上下黑边（对原画/插画无影响）。"
+          "description": "%cfg.cropBlackBars%"
         },
         "huepick.outputSuffix": {
           "type": "string",
           "default": "色卡",
-          "description": "输出色卡文件名插入的后缀。"
+          "description": "%cfg.outputSuffix%"
         },
         "huepick.outputToSourceDir": {
           "type": "boolean",
           "default": true,
-          "description": "色卡是否输出到原图同目录；关闭则弹窗选择输出目录。"
+          "description": "%cfg.outputToSourceDir%"
         },
         "huepick.template": {
           "type": "string",
-          "enum": ["landscape", "portrait", "square", "custom"],
+          "enum": [
+            "landscape",
+            "portrait",
+            "square",
+            "custom"
+          ],
           "default": "landscape",
-          "description": "色卡模板：横版 1920×1080 / 竖版 1080×1920 / 方版 1080×1080 / 自定义。"
+          "description": "%cfg.template%"
         },
         "huepick.customWidth": {
           "type": "number",
           "default": 1920,
           "minimum": 400,
           "maximum": 4096,
-          "description": "自定义画布宽度（template 为 custom 时生效）。"
+          "description": "%cfg.customWidth%"
         },
         "huepick.customHeight": {
           "type": "number",
           "default": 1080,
           "minimum": 400,
           "maximum": 4096,
-          "description": "自定义画布高度（template 为 custom 时生效）。"
+          "description": "%cfg.customHeight%"
         },
         "huepick.theme": {
           "type": "string",
-          "enum": ["dark", "light"],
+          "enum": [
+            "dark",
+            "light"
+          ],
           "default": "dark",
-          "description": "色卡主题：深色 / 浅色（影响背景、文字、分隔线颜色）。"
+          "description": "%cfg.theme%"
         },
         "huepick.exportFormats": {
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["css", "scss", "tailwind", "json"]
+            "enum": [
+              "css",
+              "scss",
+              "tailwind",
+              "json"
+            ]
           },
-          "default": ["css"],
-          "description": "生成色卡时同步导出的配色文件格式（CSS 变量 / SCSS / Tailwind / JSON）。"
+          "default": [
+            "css"
+          ],
+          "description": "%cfg.exportFormats%"
         },
         "huepick.exportHarmony": {
           "type": "boolean",
           "default": true,
-          "description": "导出配色文件时是否包含基于主色生成的配色方案（互补/类似/三色/分裂互补/单色）。"
+          "description": "%cfg.exportHarmony%"
         }
       }
     }
@@ -136,11 +161,13 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test \"out/test/**/*.test.js\"",
     "package": "vsce package"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
+    "@types/node": "^22.0.0",
     "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^4.0.0",
     "typescript": "^5.3.0"
   },
   "dependencies": {

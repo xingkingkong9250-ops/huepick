@@ -5,19 +5,32 @@
 >
 > **v0.3.0 起纯 Node 实现，无需 Python / Pillow 环境。**
 > **v0.4.0 起支持配色方案生成与多格式导出（CSS / SCSS / Tailwind / JSON）。**
+> **v0.5.0 起支持交互式参数选择、可取消批量与中英双语界面。**
 
 ## 功能
 
 - **单图取色**：在编辑器中打开图片，右键或命令面板一键生成色卡
 - **批量处理**：右键文件夹，递归扫描所有图片批量生成
+- **交互式参数选择**：每次运行可选择「使用当前设置」一键直出，或临时覆盖模板/色数/主题/导出格式
+- **可取消批量**：批量处理中可随时取消，已完成的色卡保留
 - **自动裁黑边**：电影截图自动裁除上下黑边（原画/插画自动跳过）
 - **6~12 色可配**：提取主色数量可在设置里调整
 - **色卡模板**：横版 1920×1080 / 竖版 1080×1920 / 方版 1080×1080 / 自定义尺寸
 - **深浅主题**：深色 / 浅色两套配色，文字与分隔线自动适配
 - **配色方案**：基于第一主色自动生成互补色 / 类似色 / 三原色 / 分裂互补 / 单色系
 - **多格式导出**：CSS Variables、SCSS、Tailwind config、JSON，与色卡同目录输出
+- **中英双语**：命令标题、配置说明与运行时提示自动跟随编辑器语言
 - **输出规范**：色卡图与原图同目录，文件名自动插入 `_色卡_` 后缀
 - **零外部依赖**：纯 Node 实现，基于 sharp + skia-canvas，开箱即用
+
+## 安装
+
+获取 `huepick-<版本>.vsix` 后，在 Trae / VS Code 中：
+
+- 命令面板执行 **Extensions: Install from VSIX…**，选择该文件；或
+- 命令行 `code --install-extension huepick-<版本>.vsix`
+
+> 本扩展含原生模块（sharp / skia-canvas），请安装与编辑器平台匹配的构建产物（Windows x64 / macOS / Linux）。
 
 ## 色卡样例
 
@@ -32,18 +45,25 @@
 ```
 huepick/
 ├── package.json              # Trae / VS Code 插件清单
+├── package.nls.json          # 清单文案（英文，默认）
+├── package.nls.zh-cn.json    # 清单文案（简体中文）
 ├── tsconfig.json
 ├── src/
-│   ├── extension.ts          # 插件入口、命令注册、进度 UI
+│   ├── extension.ts          # 插件入口、命令注册、进度/取消 UI
 │   ├── core/
 │   │   ├── types.ts              # 共享类型（ColorInfo / CardOptions / HarmonyScheme …）
+│   │   ├── presets.ts            # 模板尺寸、主题背景色、画布钳制
 │   │   ├── imageLoader.ts        # sharp 图片加载、透明合成、裁黑边
 │   │   ├── paletteExtractor.ts   # MMCQ 主色提取（Color Thief 同款算法）
 │   │   ├── colorHarmony.ts       # 配色规则（互补/类似/三色/分裂互补/单色）
 │   │   ├── exporter.ts           # CSS / SCSS / Tailwind / JSON 导出
 │   │   └── cardRenderer.ts       # skia-canvas 色卡渲染（横/竖/方版自适应）
-│   └── utils/
-│       └── fileNaming.ts         # 输出文件名规则、目录递归扫描
+│   ├── utils/
+│   │   ├── fileNaming.ts         # 输出文件名规则、目录递归扫描
+│   │   ├── runOptions.ts         # 交互式参数选择（QuickPick 流程）
+│   │   └── i18n.ts               # 运行时中英文文案
+│   └── test/
+│       └── huepick.test.ts       # 单元 + 端到端测试（node:test）
 └── media/
     └── icon.png              # 插件图标
 ```
@@ -69,9 +89,16 @@ npm install
 - 按 `F5` 启动扩展开发宿主
 - 在新窗口里打开任意图片 → 右键 → **拾色 HuePick：为当前图片生成色卡**
 
-### 3. 打包发布
+### 3. 运行测试
 ```bash
-npm run package       # 生成 .vsix
+npm test              # 编译 + 运行单元与端到端测试（node:test）
+```
+覆盖主色提取、配色规则、导出格式、文件名规则、裁黑边，以及三种模板 × 两种主题的
+skia-canvas 实际渲染与尺寸校验。
+
+### 4. 打包发布
+```bash
+npm run package       # 生成 huepick-<版本>.vsix
 ```
 然后在 Trae 里「从 VSIX 安装」即可。
 
