@@ -60,40 +60,51 @@ function readEntry(entry) {
   });
 }
 
-/** 从拖拽事件拿到所有真实路径 */
+/** 从拖拽事件拿到所有真实路径（多路径合并去重） */
 async function pathsFromDrag(e) {
-  const paths = [];
+  const set = new Set();
   const items = e.dataTransfer.items;
   const files = e.dataTransfer.files;
 
-  console.log('[HuePick.drag] items.length:', items?.length, 'files.length:', files?.length);
+  console.log('[HuePick.drag] items:', items?.length, 'files:', files?.length);
 
-  // 路径 A：优先 items + webkitGetAsEntry（能处理文件夹）
+  // 路径 1：dataTransfer.files + webUtils.getPathForFile
+  // Electron 官方推荐，对多选图片最稳；但无法区分文件夹 vs 文件
+  if (files && files.length > 0) {
+    for (let i = 0; i < files.length; i++) {
+      const p = getFilePath(files[i]);
+      if (p && isImagePath(p)) { set.add(p); console.log('[HuePick.drag.file]', p); }
+    }
+  }
+
+  // 路径 2：items + webkitGetAsEntry（能处理文件夹递归）
+  // Chromium 在 Electron 里对多文件场景常只返回第一个 item 的 entry，
+  // 所以这条路径必须和路径 1 合并，不能互相遮挡
   if (items && items.length > 0 && items[0].webkitGetAsEntry) {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.kind !== 'file') continue;
       const entry = item.webkitGetAsEntry();
       if (!entry) continue;
-      console.log('[HuePick.drag] item', i, 'kind=', item.kind, 'entry.isFile=', entry.isFile, 'entry.name=', entry.name);
-      const f = await new Promise((resolve) => entry.file ? entry.file(resolve, () => resolve(null)) : resolve(null));
-      if (!f) continue;
-      const p = getFilePath(f);
-      console.log('[HuePick.drag]   resolved path:', p);
-      if (p && isImagePath(p)) paths.push(p);
+      if (entry.isFile) {
+        const f = await new Promise((res) => entry.file ? entry.file(res) : res(null));
+        if (f) {
+          const p = getFilePath(f);
+          if (p && isImagePath(p)) { set.add(p); console.log('[HuePick.drag.entry] file:', p); }
+        }
+      } else if (entry.isDirectory) {
+        const sub = await readEntry(entry);
+        for (const f of sub) {
+          const p = getFilePath(f);
+          if (p && isImagePath(p)) { set.add(p); console.log('[HuePick.drag.entry] dir:', p); }
+        }
+      }
     }
-    return paths;
   }
 
-  // 路径 B：回退 files（多文件拖拽场景）
-  if (files && files.length > 0) {
-    for (let i = 0; i < files.length; i++) {
-      const p = getFilePath(files[i]);
-      console.log('[HuePick.drag] file', i, 'path:', p);
-      if (p && isImagePath(p)) paths.push(p);
-    }
-  }
-  return paths;
+  const result = [...set];
+  console.log('[HuePick.drag] =>', result.length, 'unique paths');
+  return result;
 }
 
 // ============ 文件列表 ============
@@ -136,8 +147,17 @@ function renderList() {
   $('#drop').style.display = state.files.length === 0 ? 'block' : 'none';
 }
 
-// ============ 拖拽 ============
+// ============ 拖拽（统一 document 接收，#drop 仅视觉提示） ============
 const dropEl = $('#drop');
+
+// 所有元素默认拦截（Electron 允许原生文件拖拽）
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropEl.classList.add('dragover');
+});
+document.addEventListener('dragleave', () => {
+  dropEl.classList.remove('dragover');
+});
 
 async function onDrop(e) {
   e.preventDefault();
@@ -149,28 +169,7 @@ async function onDrop(e) {
     log('未识别到图片（仅支持 PNG/JPG/WEBP/BMP/TIFF）', 'err');
   }
 }
-
-['dragenter', 'dragover'].forEach(ev => {
-  dropEl.addEventListener(ev, (e) => {
-    e.preventDefault();
-    dropEl.classList.add('dragover');
-  });
-});
-['dragleave', 'drop'].forEach(ev => {
-  dropEl.addEventListener(ev, (e) => {
-    e.preventDefault();
-    dropEl.classList.remove('dragover');
-  });
-});
-dropEl.addEventListener('drop', onDrop);
-
-// 整个窗口接收拖拽
-document.addEventListener('dragover', e => e.preventDefault());
-document.addEventListener('drop', (e) => {
-  // 如果 drop 在文件列表或其他控件上已经处理过了就不再处理
-  if (e.defaultPrevented) return;
-  onDrop(e);
-});
+document.addEventListener('drop', onDrop);
 
 // ============ 按钮 ============
 $('#btn-files').addEventListener('click', async () => {
@@ -304,10 +303,6 @@ async function showPreview(result) {
 renderList();
 showPreviewEmpty();
 log('HuePick 桌面版就绪（DevTools 已打开）', 'ok');
-
-// 禁用窗口跳转
-window.addEventListener('dragover', e => e.preventDefault());
-window.addEventListener('drop', e => e.preventDefault());
 
 // 全局错误捕获
 window.addEventListener('error', (e) => {
