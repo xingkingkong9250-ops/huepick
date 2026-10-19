@@ -40,19 +40,29 @@ function createWindow() {
   mainWindow.setMenu(null);
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  // 打开 DevTools 方便排查
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // 开发模式才自动开 DevTools（设置环境变量 HUEPICK_DEV=1 即可开启）
+  if (process.env.HUEPICK_DEV === '1') {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
 
   // 核心模块加载失败提前暴露
   mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
     console.error('[HuePick] load failed:', code, desc);
   });
+
+  // 关闭主窗口时强制退出（确保所有子进程同步终止）
+  mainWindow.on('closed', () => { mainWindow = null; app.quit(); });
 }
 
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  app.quit();
+});
+
+// 兜底：退出前清理所有子进程
+app.on('before-quit', () => {
+  process.exitCode = 0;
 });
 
 app.on('activate', () => {
