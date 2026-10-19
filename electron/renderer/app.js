@@ -13,14 +13,91 @@ function log(msg, cls = 'info') {
   div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
   logEl.appendChild(div);
   logEl.scrollTop = logEl.scrollHeight;
+  console.log(`[HuePick.${cls}] ${msg}`);
+}
+
+// ============ 路径解析 ============
+const EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'];
+function isImagePath(p) { return EXTS.some(e => p.toLowerCase().endsWith(e)); }
+
+/** File → 真实路径，Electron 专用 */
+function getFilePath(file) {
+  // 优先用 Electron 官方 API（最可靠）
+  if (window.huepick && window.huepick.getPathForFile) {
+    const p = window.huepick.getPathForFile(file);
+    if (p && typeof p === 'string' && p.length > 0) return p;
+  }
+  // 回退：Electron 早期版本扩展的 File.path
+  if (file.path && typeof file.path === 'string' && file.path.length > 0) return file.path;
+  return null;
+}
+
+/** 递归遍历拖拽目录 */
+function readEntry(entry) {
+  return new Promise((resolve) => {
+    if (entry.isFile) {
+      entry.file((f) => resolve([f]), () => resolve([]));
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const all = [];
+      const readAll = () => {
+        reader.readEntries(async (entries) => {
+          if (entries.length === 0) {
+            resolve(all);
+            return;
+          }
+          for (const e of entries) {
+            const sub = await readEntry(e);
+            all.push(...sub);
+          }
+          readAll(); // 继续读（目录可能分多次返回）
+        }, () => resolve(all));
+      };
+      readAll();
+    } else {
+      resolve([]);
+    }
+  });
+}
+
+/** 从拖拽事件拿到所有真实路径 */
+async function pathsFromDrag(e) {
+  const paths = [];
+  const items = e.dataTransfer.items;
+
+  // 优先用 items（能拿到目录）
+  if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind !== 'file') continue;
+      const entry = item.webkitGetAsEntry();
+      if (!entry) continue;
+      const files = await readEntry(entry);
+      for (const f of files) {
+        const p = getFilePath(f);
+        if (p && isImagePath(p)) paths.push(p);
+      }
+    }
+    return paths;
+  }
+
+  // 回退：只用 files（文件模式）
+  const files = e.dataTransfer.files;
+  for (let i = 0; i < files.length; i++) {
+    const p = getFilePath(files[i]);
+    if (p && isImagePath(p)) paths.push(p);
+  }
+  return paths;
 }
 
 // ============ 文件列表 ============
-function addFiles(paths) {
-  const exts = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'];
-  const valid = paths.filter(p => exts.some(e => p.toLowerCase().endsWith(e)));
+function addPaths(paths) {
   const existing = new Set(state.files);
-  valid.forEach(p => { if (!existing.has(p)) state.files.push(p); });
+  let added = 0;
+  paths.forEach(p => {
+    if (!existing.has(p)) { state.files.push(p); added++; }
+  });
+  if (added > 0) log(`+${added} 张图片`, 'ok');
   renderList();
 }
 
@@ -29,8 +106,9 @@ function renderList() {
   state.files.forEach((f, i) => {
     const div = document.createElement('div');
     div.className = 'file-item' + (i === state.selectedIdx ? ' selected' : '');
+    const encodedPath = encodeURI(f).replace(/%5C/g, '/');
     div.innerHTML = `
-      <div class="file-thumb" style="background-image:url('file:///${encodeURIComponent(f).replace(/%5C/g, '/')}')"></div>
+      <img class="file-thumb" src="file:///${encodedPath}" />
       <div class="file-meta">
         <div class="file-name">${f.split(/[\\/]/).pop()}</div>
         <div class="file-path">${f}</div>
@@ -54,6 +132,18 @@ function renderList() {
 
 // ============ 拖拽 ============
 const dropEl = $('#drop');
+
+async function onDrop(e) {
+  e.preventDefault();
+  dropEl.classList.remove('dragover');
+  const paths = await pathsFromDrag(e);
+  if (paths.length > 0) {
+    addPaths(paths);
+  } else {
+    log('未识别到图片（仅支持 PNG/JPG/WEBP/BMP/TIFF）', 'err');
+  }
+}
+
 ['dragenter', 'dragover'].forEach(ev => {
   dropEl.addEventListener(ev, (e) => {
     e.preventDefault();
@@ -66,42 +156,39 @@ const dropEl = $('#drop');
     dropEl.classList.remove('dragover');
   });
 });
-dropEl.addEventListener('drop', async (e) => {
-  const files = [...e.dataTransfer.files].map(f => f.path);
-  if (files.length > 0) addFiles(files);
-});
+dropEl.addEventListener('drop', onDrop);
 
-// 支持拖拽到整个窗口（非拖拽区也能接收）
-document.addEventListener('dragover', (e) => e.preventDefault());
+// 整个窗口接收拖拽
+document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', (e) => {
-  e.preventDefault();
-  const files = [...e.dataTransfer.files].map(f => f.path);
-  if (files.length > 0) addFiles(files);
+  // 如果 drop 在文件列表或其他控件上已经处理过了就不再处理
+  if (e.defaultPrevented) return;
+  onDrop(e);
 });
 
 // ============ 按钮 ============
 $('#btn-files').addEventListener('click', async () => {
   const paths = await window.huepick.pickFiles();
-  if (paths) addFiles(paths);
+  if (paths && paths.length > 0) addPaths(paths);
 });
 $('#btn-folder').addEventListener('click', async () => {
   const result = await window.huepick.pickFolder();
-  if (result) addFiles(result.files);
+  if (result && result.files.length > 0) addPaths(result.files);
 });
 $('#btn-clear').addEventListener('click', () => {
   state.files = [];
   state.selectedIdx = -1;
   renderList();
-  previewEl.innerHTML = '';
-  previewEl.appendChild(emptyPreview());
+  showPreviewEmpty();
   log('已清空', 'info');
 });
 
-function emptyPreview() {
+function showPreviewEmpty() {
   const d = document.createElement('div');
   d.className = 'preview-empty';
   d.innerHTML = '<div class="pe-icon">🎯</div><div>选择图片后点击生成</div>';
-  return d;
+  previewEl.innerHTML = '';
+  previewEl.appendChild(d);
 }
 
 // ============ 生成 ============
@@ -124,33 +211,51 @@ $('#btn-generate').addEventListener('click', async () => {
   const outputs = [];
   for (let i = 0; i < state.files.length; i++) {
     const f = state.files[i];
-    log(`(${i + 1}/${state.files.length}) ${f.split(/[\\/]/).pop()}`, 'info');
-    const r = await window.huepick.generateCard({ ...payload, sourcePath: f });
-    if (r.ok) {
-      outputs.push(r);
-      log(`  ✓ 色卡: ${r.cardPath.split(/[\\/]/).pop()}`, 'ok');
-      r.extraFiles.forEach(ef => log(`  + ${ef.split(/[\\/]/).pop()}`, 'info'));
-    } else {
-      log(`  ✗ ${r.error}`, 'err');
+    const name = f.split(/[\\/]/).pop();
+    log(`(${i + 1}/${state.files.length}) ${name}`, 'info');
+    try {
+      const r = await window.huepick.generateCard({ ...payload, sourcePath: f });
+      if (r.ok) {
+        outputs.push(r);
+        log(`  ✓ ${name}`, 'ok');
+        log(`    色卡: ${r.cardPath}`, 'info');
+        r.extraFiles.forEach(ef => log(`    + ${ef.split(/[\\/]/).pop()}`, 'info'));
+      } else {
+        log(`  ✗ ${r.error}`, 'err');
+      }
+    } catch (e) {
+      log(`  ✗ 异常: ${e.message || e}`, 'err');
     }
   }
 
   btn.disabled = false;
   $('#gen-text').textContent = '🚀 生成色卡';
 
-  // 预览第一张
-  if (outputs.length > 0) showPreview(outputs[0]);
-  log(`完成：${outputs.length} 张成功`, 'ok');
+  if (outputs.length > 0) {
+    showPreview(outputs[0]);
+    log(`完成：${outputs.length}/${state.files.length} 成功`, 'ok');
+  } else {
+    log('全部失败，请检查 DevTools Console', 'err');
+  }
 });
 
 // ============ 预览 ============
-function showPreview(result) {
+async function showPreview(result) {
   previewEl.innerHTML = '';
   const card = document.createElement('div');
   card.className = 'preview-card';
 
   const img = document.createElement('img');
-  img.src = `file:///${result.cardPath.replace(/\\/g, '/')}`;
+  img.alt = '色卡预览';
+
+  // 用主进程生成 URL 最稳
+  try {
+    img.src = await window.huepick.pathToUrl(result.cardPath);
+  } catch {
+    img.src = 'file:///' + result.cardPath.replace(/\\/g, '/');
+  }
+
+  img.onerror = () => log('预览图加载失败：' + result.cardPath, 'err');
 
   const actions = document.createElement('div');
   actions.className = 'card-actions';
@@ -164,7 +269,6 @@ function showPreview(result) {
   card.appendChild(img);
   card.appendChild(actions);
 
-  // 主色色块
   if (result.colors && result.colors.length > 0) {
     const strip = document.createElement('div');
     strip.className = 'colors-strip';
@@ -173,8 +277,8 @@ function showPreview(result) {
       chip.className = 'color-chip';
       chip.style.background = c.hex;
       chip.title = `${c.hex}  占比 ${(c.ratio * 100).toFixed(1)}%`;
-      chip.onclick = () => {
-        window.huepick.copyText(c.hex);
+      chip.onclick = async () => {
+        await window.huepick.copyText(c.hex);
         log(`已复制 ${c.hex}`, 'ok');
       };
       const lbl = document.createElement('span');
@@ -191,9 +295,17 @@ function showPreview(result) {
 
 // ============ 初始化 ============
 renderList();
-previewEl.appendChild(emptyPreview());
-log('HuePick 桌面版就绪', 'ok');
+showPreviewEmpty();
+log('HuePick 桌面版就绪（DevTools 已打开）', 'ok');
 
-// 禁用窗口跳转（拖拽文件进来时防止浏览器尝试打开）
+// 禁用窗口跳转
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('drop', e => e.preventDefault());
+
+// 全局错误捕获
+window.addEventListener('error', (e) => {
+  log(`[JS ERROR] ${e.message} @ ${e.filename}:${e.lineno}`, 'err');
+});
+window.addEventListener('unhandledrejection', (e) => {
+  log(`[PROMISE] ${e.reason?.message || e.reason}`, 'err');
+});

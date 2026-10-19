@@ -6,10 +6,17 @@ const path = require('path');
 const fs = require('fs');
 
 // 核心模块（共享 VS Code 扩展的编译产物）
-const { generateCard } = require('../out/core/cardRenderer');
-const { generateHarmonySchemes } = require('../out/core/colorHarmony');
-const { buildExportFile } = require('../out/core/exporter');
-const { DEFAULT_PRESETS } = require('../out/core/presets');
+let generateCard, generateHarmonySchemes, buildExportFile, TEMPLATE_SIZES;
+try {
+  ({ generateCard } = require('../out/core/cardRenderer'));
+  ({ generateHarmonySchemes } = require('../out/core/colorHarmony'));
+  ({ buildExportFile } = require('../out/core/exporter'));
+  ({ TEMPLATE_SIZES } = require('../out/core/presets'));
+  console.log('[HuePick] core modules loaded OK');
+} catch (err) {
+  console.error('[HuePick] core modules LOAD FAILED:', err.message);
+  process.env.HUEPICK_CORE_ERROR = err.message;
+}
 
 let mainWindow = null;
 
@@ -25,14 +32,21 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: false,              // 允许 file:// 协议加载预览图
+      allowRunningInsecureContent: true,
     },
   });
 
   mainWindow.setMenu(null);
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  // 开发时可开 DevTools
-  // mainWindow.webContents.openDevTools();
+  // 打开 DevTools 方便排查
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
+
+  // 核心模块加载失败提前暴露
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
+    console.error('[HuePick] load failed:', code, desc);
+  });
 }
 
 app.whenReady().then(createWindow);
@@ -77,6 +91,9 @@ ipcMain.handle('pick-files', async () => {
 
 /** 主入口：生成色卡 */
 ipcMain.handle('generate-card', async (_evt, payload) => {
+  if (!generateCard) {
+    return { ok: false, error: '核心模块加载失败：' + process.env.HUEPICK_CORE_ERROR };
+  }
   const {
     sourcePath,
     numColors = 6,
@@ -93,8 +110,8 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
   try {
     // 1. 确定色卡尺寸
     let w = customWidth, h = customHeight;
-    if (template !== 'custom') {
-      const preset = DEFAULT_PRESETS.find(p => p.id === template);
+    if (template !== 'custom' && TEMPLATE_SIZES) {
+      const preset = TEMPLATE_SIZES[template];
       if (preset) { w = preset.width; h = preset.height; }
     }
 
@@ -159,7 +176,18 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
       extraFiles,
     };
   } catch (err) {
+    console.error('[HuePick] generate-card FAILED:', err.message, err.stack);
     return { ok: false, error: err.message || String(err) };
+  }
+});
+
+/** 把本地路径转成 file:// URL（主进程生成最稳） */
+ipcMain.handle('path-to-url', async (_evt, filePath) => {
+  try {
+    const { pathToFileURL } = require('url');
+    return pathToFileURL(filePath).href;
+  } catch (e) {
+    return 'file:///' + filePath.replace(/\\/g, '/').replace(/^([A-Za-z]:)/, '/$1');
   }
 });
 
