@@ -166,15 +166,23 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
         ctx.fillText(color.hex, x0 + blockWidth + 20, y0 + rowHeight / 2);
       });
     } else {
-      // 横排：N 列色块 + 占比 + HEX
+      // 横排 / 方排：自动网格（一行放不下自动换行，保证 HEX 可读）
       const gap = 16;
       const hexLineHeight = 40;
-      const swHeight = swBottom - swTop - hexLineHeight;
-      const swWidth = Math.floor((availWidth - gap * (colors.length - 1)) / colors.length);
+      const minSwatchWidth = 130;  // 保证 HEX 文本有足够宽度
+
+      const cols = Math.max(1, Math.min(colors.length, Math.floor((availWidth + gap) / (minSwatchWidth + gap))));
+      const rows = Math.ceil(colors.length / cols);
+
+      const swWidth = Math.floor((availWidth - gap * (cols - 1)) / cols);
+      const blockHeight = Math.floor((swBottom - swTop - gap * (rows - 1)) / rows);
+      const swHeight = blockHeight - hexLineHeight;
 
       colors.forEach((color, i) => {
-        const x0 = PADDING + i * (swWidth + gap);
-        const y0 = swTop;
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const x0 = PADDING + col * (swWidth + gap);
+        const y0 = swTop + row * (blockHeight + gap);
 
         ctx.fillStyle = color.hex;
         ctx.fillRect(x0, y0, swWidth, swHeight);
