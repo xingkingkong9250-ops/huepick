@@ -113,6 +113,7 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
     customHeight = 1080,
     theme = 'dark',
     outputFormat = 'jpg',
+    preview = false,
     exportFormats = [],
     exportHarmony = false,
     outputSuffix = '色卡',
@@ -131,12 +132,18 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
       ? { r: 245, g: 245, b: 247 }
       : { r: 24, g: 24, b: 26 };
 
-    // 3. 输出路径（冲突自动编号，避免覆盖已生成的色卡）
-    const dir = path.dirname(sourcePath);
+    // 3. 输出路径（预览模式落临时目录，正式生成落原图目录 + 冲突自动编号）
     const base = path.basename(sourcePath, path.extname(sourcePath));
     const ext = outputFormat === 'png' ? '.png' : '.jpg';
+    let dir;
+    if (preview) {
+      dir = path.join(app.getPath('temp'), 'HuePick-preview');
+      fs.mkdirSync(dir, { recursive: true });
+    } else {
+      dir = path.dirname(sourcePath);
+    }
     let outPath = path.join(dir, `${base}_${outputSuffix}${ext}`);
-    if (fs.existsSync(outPath)) {
+    if (!preview && fs.existsSync(outPath)) {
       let n = 2;
       while (fs.existsSync(path.join(dir, `${base}_${outputSuffix} (${n})${ext}`))) n++;
       outPath = path.join(dir, `${base}_${outputSuffix} (${n})${ext}`);

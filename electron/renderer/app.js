@@ -224,7 +224,7 @@ async function generatePreview(targetFile) {
   if (!targetFile) { showPreviewEmpty(); return; }
   log(`预览：${targetFile.split(/[\\/]/).pop()}`, 'info');
   try {
-    const r = await window.huepick.generateCard({ ...readPayload(), sourcePath: targetFile });
+    const r = await window.huepick.generateCard({ ...readPayload(), sourcePath: targetFile, preview: true });
     if (r.ok) showPreview(r);
     else log(`预览失败：${r.error}`, 'err');
   } catch (e) {
