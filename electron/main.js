@@ -130,10 +130,16 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
       ? { r: 245, g: 245, b: 247 }
       : { r: 24, g: 24, b: 26 };
 
-    // 3. 输出路径
+    // 3. 输出路径（冲突自动编号，避免覆盖已生成的色卡）
     const dir = path.dirname(sourcePath);
     const base = path.basename(sourcePath, path.extname(sourcePath));
-    const outPath = path.join(dir, `${base}_${outputSuffix}.jpg`);
+    const ext = '.jpg';
+    let outPath = path.join(dir, `${base}_${outputSuffix}${ext}`);
+    if (fs.existsSync(outPath)) {
+      let n = 2;
+      while (fs.existsSync(path.join(dir, `${base}_${outputSuffix} (${n})${ext}`))) n++;
+      outPath = path.join(dir, `${base}_${outputSuffix} (${n})${ext}`);
+    }
 
     // 4. 生成色卡
     const result = await generateCard(sourcePath, {
