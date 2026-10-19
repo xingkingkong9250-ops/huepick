@@ -70,6 +70,8 @@ export interface CardOptions {
   titleText?: string;
   /** 输出文件路径（含文件名） */
   outputPath: string;
+  /** 输出格式 'jpg' | 'png'，默认 'jpg' */
+  outputFormat?: 'jpg' | 'png';
 }
 
 /** 单张图片处理结果 */

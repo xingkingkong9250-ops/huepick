@@ -67,6 +67,7 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
     background = DEFAULT_BG,
     titleText,
     outputPath,
+    outputFormat = 'jpg',
   } = options;
 
   try {
@@ -201,7 +202,11 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
     if (!fs.existsSync(outDir)) {
       fs.mkdirSync(outDir, { recursive: true });
     }
-    await canvas.toFile(outputPath, { format: 'jpeg', quality: 0.92 });
+    if (outputFormat === 'png') {
+      await canvas.toFile(outputPath, { format: 'png' });
+    } else {
+      await canvas.toFile(outputPath, { format: 'jpeg', quality: 0.92 });
+    }
 
     return {
       sourcePath,

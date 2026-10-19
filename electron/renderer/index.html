@@ -65,19 +65,11 @@
           <input type="checkbox" id="p-crop" checked />
         </div>
         <div class="param-row">
-          <label>导出格式</label>
-          <div class="check-group">
-            <!-- 多格式导出（UI 暂时隐藏，功能代码保留，后续按需释放） -->
-            <label style="display:none"><input type="checkbox" class="p-fmt" value="css" /> CSS</label>
-            <label style="display:none"><input type="checkbox" class="p-fmt" value="scss" /> SCSS</label>
-            <label style="display:none"><input type="checkbox" class="p-fmt" value="tailwind" /> Tailwind</label>
-            <label style="display:none"><input type="checkbox" class="p-fmt" value="json" /> JSON</label>
-          </div>
-        </div>
-        <!-- 配色规则导出（UI 暂时隐藏，功能代码保留） -->
-        <div class="param-row" style="display:none">
-          <label>配色规则</label>
-          <input type="checkbox" id="p-harmony" />
+          <label>输出格式</label>
+          <select id="p-format">
+            <option value="jpg" selected>JPG（体积小）</option>
+            <option value="png">PNG（无损）</option>
+          </select>
         </div>
         <button id="btn-generate" class="primary">
           <span id="gen-text">🚀 生成色卡</span>

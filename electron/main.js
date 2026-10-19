@@ -112,8 +112,9 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
     customWidth = 1920,
     customHeight = 1080,
     theme = 'dark',
-    exportFormats = ['css'],
-    exportHarmony = true,
+    outputFormat = 'jpg',
+    exportFormats = [],
+    exportHarmony = false,
     outputSuffix = '色卡',
   } = payload;
 
@@ -133,7 +134,7 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
     // 3. 输出路径（冲突自动编号，避免覆盖已生成的色卡）
     const dir = path.dirname(sourcePath);
     const base = path.basename(sourcePath, path.extname(sourcePath));
-    const ext = '.jpg';
+    const ext = outputFormat === 'png' ? '.png' : '.jpg';
     let outPath = path.join(dir, `${base}_${outputSuffix}${ext}`);
     if (fs.existsSync(outPath)) {
       let n = 2;
@@ -149,6 +150,7 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
       cardHeight: h,
       background: bg,
       outputPath: outPath,
+      outputFormat,
     });
 
     if (!result.success) {

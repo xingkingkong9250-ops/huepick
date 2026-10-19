@@ -212,6 +212,7 @@ function readPayload() {
     cropBars: $('#p-crop').checked,
     template: $('#p-template').value,
     theme: $('#p-theme').value,
+    outputFormat: $('#p-format').value,  // 'jpg' | 'png'
     exportFormats: [],
     exportHarmony: false,
   };
