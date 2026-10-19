@@ -1,25 +1,37 @@
 @echo off
 REM =========================================
-REM HuePick launcher (ASCII-only - cmd-safe)
+REM HuePick Desktop Launcher - ASCII only
 REM =========================================
-REM run.bat               -> interactive menu
-REM run.bat check         -> env check
-REM run.bat install       -> npm install
-REM run.bat compile       -> tsc compile
-REM run.bat test          -> unit + e2e tests
-REM run.bat package       -> build vsix
-REM run.bat dist          -> build Electron .exe installer
-REM run.bat dev           -> launch Electron dev window
-REM run.bat all           -> compile + test + vsix + dist
-REM run.bat install-vsix  -> install vsix into editor
-
-if "%~1"=="" goto interactive
+REM Prefer packed exe; fallback to npm run dev
 cd /d "%~dp0"
-powershell -NoLogo -ExecutionPolicy Bypass -File "%~dp0run.ps1" -Command %*
-exit /b %errorlevel%
 
-:interactive
-chcp 65001 >nul 2>&1
-cd /d "%~dp0"
-powershell -NoLogo -ExecutionPolicy Bypass -File "%~dp0run.ps1"
-exit /b %errorlevel%
+set "PACKED=%~dp0dist\win-unpacked\HuePick.exe"
+if exist "%PACKED%" (
+    start "" "%PACKED%"
+    exit /b 0
+)
+
+REM Fallback: dev mode
+echo [HuePick] Packed exe not found, starting dev mode...
+where node >nul 2>&1
+if errorlevel 1 (
+    echo [FAIL] Node.js not installed
+    pause
+    exit /b 1
+)
+if not exist "node_modules" (
+    echo [HuePick] Installing dependencies...
+    call npm install
+    if errorlevel 1 (
+        echo [FAIL] npm install failed
+        pause
+        exit /b 1
+    )
+)
+call npm run compile
+if errorlevel 1 (
+    echo [FAIL] TypeScript compile failed
+    pause
+    exit /b 1
+)
+start "" npx electron .
