@@ -123,7 +123,7 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
     // 3. 输出路径
     const dir = path.dirname(sourcePath);
     const base = path.basename(sourcePath, path.extname(sourcePath));
-    const outPath = path.join(dir, `${base}_${outputSuffix}.png`);
+    const outPath = path.join(dir, `${base}_${outputSuffix}.jpg`);
 
     // 4. 生成色卡
     const result = await generateCard(sourcePath, {

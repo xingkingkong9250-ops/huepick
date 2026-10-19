@@ -206,8 +206,9 @@ $('#btn-generate').addEventListener('click', async () => {
     cropBars: $('#p-crop').checked,
     template: $('#p-template').value,
     theme: $('#p-theme').value,
-    exportFormats: [...document.querySelectorAll('.p-fmt:checked')].map(c => c.value),
-    exportHarmony: $('#p-harmony').checked,
+    // 多格式导出 & 配色规则暂时关闭，后续按需释放
+    exportFormats: [],
+    exportHarmony: false,
   };
 
   const btn = $('#btn-generate');
