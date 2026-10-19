@@ -1,8 +1,8 @@
 {
   "name": "huepick",
   "displayName": "拾色 HuePick",
-  "description": "分析任意图片（电影截图、原画、插画、摄影）的主色，一键生成带 HEX 标注的专业色卡图。",
-  "version": "0.2.0",
+  "description": "纯本地运行的图片主色提取工具：一键生成带 HEX 与占比标注的专业色卡，无需 Python。",
+  "version": "0.3.0",
   "publisher": "huepick-studio",
   "license": "MIT",
   "keywords": [
@@ -67,11 +67,6 @@
     "configuration": {
       "title": "拾色 HuePick",
       "properties": {
-        "huepick.pythonPath": {
-          "type": "string",
-          "default": "python",
-          "description": "Python 解释器路径（需已安装 Pillow）。"
-        },
         "huepick.numColors": {
           "type": "number",
           "default": 6,
@@ -107,5 +102,9 @@
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.80.0",
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5",
+    "skia-canvas": "^4.0.0"
   }
 }
