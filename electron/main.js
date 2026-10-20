@@ -5,6 +5,9 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// 窗口图标（build/ 在 asar 里和 electron/ 同级，所以相对路径通用）
+const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.ico');
+
 // 核心模块（共享 VS Code 扩展的编译产物）
 let generateCard, generateHarmonies, exportPalettes, TEMPLATE_SIZES;
 try {
@@ -27,6 +30,7 @@ function createWindow() {
     minWidth: 960,
     minHeight: 640,
     title: 'HuePick — 拾色',
+    icon: ICON_PATH,
     backgroundColor: '#1a1a1e',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
