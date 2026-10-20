@@ -346,10 +346,14 @@ previewTriggers.forEach(sel => {
   el.addEventListener('input', triggerPreviewDebounced); // number 滑块
 });
 
-// 版本号从 package.json 动态读取
-document.addEventListener('DOMContentLoaded', () => {
+// 版本号：从主进程 IPC 拉取（单一来源）
+document.addEventListener('DOMContentLoaded', async () => {
   const el = document.getElementById('ver');
-  if (el && window.huepick?.version) el.textContent = 'v' + window.huepick.version;
+  if (!el) return;
+  try {
+    const v = await window.huepick.getVersion();
+    if (v) el.textContent = 'v' + v;
+  } catch (_) { /* keep HTML fallback */ }
 });
 
 // 全局错误捕获

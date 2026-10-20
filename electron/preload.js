@@ -1,16 +1,9 @@
 // Electron preload —— 用 contextBridge 安全暴露主进程能力
-const { contextBridge, ipcRenderer, webUtils, app } = require('electron');
-const path = require('path');
-
-// 从 package.json 读版本号（唯一来源）
-let VERSION = '0.0.0';
-try {
-  const pkg = require(path.join(__dirname, '..', 'package.json'));
-  VERSION = pkg.version;
-} catch (_) {}
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('huepick', {
-  version: VERSION,
+  /** 版本号：从主进程读取 package.json（单一来源，打包/开发通用） */
+  getVersion: () => ipcRenderer.invoke('app-version'),
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
   pickFiles: () => ipcRenderer.invoke('pick-files'),
   generateCard: (payload) => ipcRenderer.invoke('generate-card', payload),
