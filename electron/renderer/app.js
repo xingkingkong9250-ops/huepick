@@ -346,6 +346,12 @@ previewTriggers.forEach(sel => {
   el.addEventListener('input', triggerPreviewDebounced); // number 滑块
 });
 
+// 版本号从 package.json 动态读取
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('ver');
+  if (el && window.huepick?.version) el.textContent = 'v' + window.huepick.version;
+});
+
 // 全局错误捕获
 window.addEventListener('error', (e) => {
   log(`[JS ERROR] ${e.message} @ ${e.filename}:${e.lineno}`, 'err');
