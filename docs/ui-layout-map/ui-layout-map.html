@@ -1,0 +1,409 @@
+<!-- HuePick v1.0.0 · UI Layout Map -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HuePick · 界面编号视觉图鉴（v1.0.0）</title>
+<style>
+:root{
+  --bg:#0F0F0F; --bg2:#1A1A1A; --bg3:#161616;
+  --ink:#E8E8E8; --muted:#9A9A9A; --rule:#2A2A2A;
+  --accent:#2E8AB0; --accent2:#C0503A;
+  --z-r1:#6FBF6F; --z-c1:#D0A03A; --z-c2:#3D9DC4; --z-e:#8C8C8C;
+  --mono:"Cascadia Mono",Consolas,"Courier New",monospace;
+  --sans:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65}
+.wrap{max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem 6rem}
+h1{font-size:1.7rem;font-weight:700;letter-spacing:.02em;margin:.2rem 0 .4rem}
+h1 small{display:block;font-size:.85rem;color:var(--muted);font-weight:400;margin-top:.35rem}
+h2{font-size:1.15rem;font-weight:700;margin:3rem 0 .6rem;padding-bottom:.45rem;border-bottom:2px solid var(--accent);letter-spacing:.04em}
+h2 .no{color:var(--accent);font-family:var(--mono);margin-right:.5rem}
+h3{font-size:1rem;font-weight:600;color:var(--accent);margin:1.6rem 0 .4rem}
+p.lead{color:var(--muted);max-width:70ch;margin:.3rem 0 1rem}
+.toc{display:flex;flex-wrap:wrap;gap:.5rem;margin:1.2rem 0 0;padding:0;list-style:none}
+.toc a{display:inline-block;padding:.3rem .7rem;border:1px solid var(--rule);border-radius:99px;font-size:.8rem;color:var(--muted)}
+.toc a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem;margin:1rem 0}
+.rules div{background:var(--bg2);border:1px solid var(--rule);border-radius:8px;padding:.7rem .9rem;font-size:.85rem}
+.rules b{color:var(--accent);font-family:var(--mono)}
+.rules .warn b{color:var(--accent2)}
+figure{margin:1.4rem 0 1rem;text-align:center}
+figure svg{width:100%;height:auto;background:var(--bg3);border:1px solid var(--rule);border-radius:10px}
+figcaption{font-size:.8rem;color:var(--muted);margin-top:.5rem}
+.table-wrap{overflow-x:auto;overflow-y:auto;max-height:520px;border:1px solid var(--rule);border-radius:10px;margin:.8rem 0 1.6rem}
+table{width:100%;border-collapse:collapse;font-size:.83rem}
+th{position:sticky;top:0;background:var(--bg2);color:var(--muted);text-align:left;font-weight:600;padding:.5rem .8rem;border-bottom:1px solid var(--rule);white-space:nowrap;z-index:2}
+td{padding:.42rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);color:var(--accent);white-space:nowrap;cursor:pointer}
+tr:hover td{background:rgba(46,138,176,.08)}
+tr.hl td{background:rgba(46,138,176,.18)}
+.legend{display:flex;flex-wrap:wrap;gap:.9rem;margin:.4rem 0 .6rem;font-size:.78rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.chip{cursor:pointer}
+.chip rect{fill:rgba(255,255,255,.04);stroke:var(--z);stroke-width:1.1;rx:4}
+.chip text.chip-num{fill:var(--z);font-family:var(--mono);font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.chip text.chip-lbl{fill:var(--muted);font-family:var(--sans);font-size:10px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.chip:hover rect,.chip.on rect{fill:var(--z);stroke:var(--z)}
+.chip:hover text.chip-num,.chip.on text.chip-num{fill:#0F0F0F}
+.chip:hover text.chip-lbl,.chip.on text.chip-lbl{fill:#0F0F0F}
+.zone-lb{font-size:11px;fill:var(--muted);font-family:var(--sans)}
+.wire{fill:rgba(255,255,255,.03);stroke:var(--rule);stroke-width:1}
+.wire2{fill:none;stroke:#444;stroke-width:1;stroke-dasharray:4 3}
+.lbl{font-size:12px;fill:var(--ink);font-family:var(--sans)}
+.lbl-m{font-size:11px;fill:var(--muted);font-family:var(--sans)}
+#statusbar{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-top:1px solid var(--accent);padding:.55rem 1.2rem;font-family:var(--mono);font-size:.82rem;color:var(--ink);min-height:2.4rem;z-index:9}
+#statusbar .hint{color:var(--muted);font-family:var(--sans)}
+.kv{background:var(--bg2);border:1px solid var(--rule);border-radius:10px;padding:1rem 1.2rem;margin:1rem 0;font-size:.88rem}
+.kv b{color:var(--accent)}
+footer{margin-top:4rem;color:var(--muted);font-size:.8rem;border-top:1px solid var(--rule);padding-top:1rem}
+@media (max-width:700px){.wrap{padding:1.5rem 1rem 5rem}.rules{grid-template-columns:1fr}}
+@media print{#statusbar{display:none}body{background:#fff;color:#111}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>HuePick · 界面编号视觉图鉴<small>以视觉布局为主线的编号对照手册 · 适用版本 v1.0.0 · 与 package.json（唯一版本真源）同步</small></h1>
+<ul class="toc">
+  <li><a href="#rules">编号规则</a></li>
+  <li><a href="#w1">W1 主窗口总览</a></li>
+  <li><a href="#w1r1">R1 顶栏（Logo + 版本 + 品牌）</a></li>
+  <li><a href="#w1c1">C1 左栏：拖拽区 + 文件列表</a></li>
+  <li><a href="#w1c2">C2 右栏：参数 · 生成 · 预览 · 日志</a></li>
+  <li><a href="#params">参数详解速查</a></li>
+</ul>
+
+<h2 id="rules"><span class="no">§0</span>编号规则与使用方法</h2>
+<p class="lead">编号是<strong>锁定位置的唯一标记</strong>：调整布局前先在图上找到目标编号，改完 HTML/CSS 后回来核对编号仍指向同一功能。点击图中任意编号芯片，页面底部会显示它的完整说明；表格行也会同步高亮。</p>
+<div class="rules">
+  <div><b>W{1..9}</b><br>顶级窗口，按创建顺序编号</div>
+  <div><b>W1-{区域字母}</b><br>窗口内大区域（R1 顶栏 / C1 左栏 / C2 右栏 / E 浮层）</div>
+  <div><b>W1-{区域}-{NN}</b><br>区域内两位序号，定位到具体控件</div>
+  <div class="warn"><b>铁律</b><br>编号不可改 · 不复用 · 删除跟随删除 · 新增顺序续编</div>
+</div>
+<div class="legend">
+  <span><i style="background:var(--z-r1)"></i>R1 顶栏</span>
+  <span><i style="background:var(--z-c1)"></i>C1 左栏（拖拽/列表）</span>
+  <span><i style="background:var(--z-c2)"></i>C2 右栏（参数/预览/日志）</span>
+  <span><i style="background:var(--z-e)"></i>E 全局叠加层</span>
+</div>
+
+<!-- ========== W1 主窗口总览 ========== -->
+<h2 id="w1"><span class="no">§1</span>W1 主窗口 · 总览布局</h2>
+<p class="lead">三栏结构：<strong style="color:var(--z-r1)">R1 顶栏</strong> → 左侧 <strong style="color:var(--z-c1)">C1 拖拽区 + 文件列表</strong> + 右侧 <strong style="color:var(--z-c2)">C2 参数面板 + 生成按钮 + 预览区 + 日志面板</strong>。窗口默认 1280×820，最小 960×640。</p>
+
+<figure>
+<svg viewBox="0 0 1200 660" role="img" aria-label="W1 主窗口总览布局图">
+  <!-- === R1 顶栏 === -->
+  <rect class="wire" x="10" y="10" width="1180" height="48" rx="6"/>
+  <text class="zone-lb" x="20" y="53" fill="var(--z-r1)">W1-R1 顶栏 · 高 48px</text>
+  <!-- Logo + 品牌 -->
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-01" data-name="彩色胶片 Logo" data-desc="正式版彩色胶片 Logo 图标（png → 打包为 exe icon + 窗口标题栏 icon）；28px 显示">
+    <rect x="20" y="16" width="30" height="22" rx="4"/>
+    <text class="chip-num" x="35" y="27">01</text>
+  </g>
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-02" data-name="品牌名 HuePick" data-desc="加粗 16px Segoe UI + Microsoft YaHei；跟在 Logo 右侧">
+    <rect x="56" y="16" width="78" height="22" rx="4"/>
+    <text class="chip-num" x="95" y="27">02</text>
+  </g>
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-03" data-name="版本号 v1.0.0" data-desc="动态从 package.json 读取（主进程 fs.readFileSync → ipcMain.handle('app-version') → preload getVersion() → renderer 写入）；v1.0.0 起替换硬编码">
+    <rect x="140" y="16" width="58" height="22" rx="4"/>
+    <text class="chip-num" x="169" y="27">03</text>
+  </g>
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-04" data-name="窗口标题 HuePick — 拾色" data-desc="Electron BrowserWindow.title；— 拾色 为副标题">
+    <rect x="1040" y="16" width="140" height="22" rx="4"/>
+    <text class="chip-num" x="1110" y="27">04</text>
+  </g>
+
+  <!-- === 主体 C1 + C2 === -->
+  <rect class="wire" x="10" y="64" width="1180" height="586" rx="6"/>
+
+  <!-- C1 左栏 -->
+  <rect class="wire" x="18" y="72" width="330" height="570" rx="5"/>
+  <text class="zone-lb" x="28" y="89" fill="var(--z-c1)">W1-C1 左栏 · 固定宽 330</text>
+  <g class="chip" style="--z:var(--z-c1)" data-num="W1-C1-01" data-name="拖拽区" data-desc="虚线框；拖入文件/文件夹自动识别；支持 JPG/PNG/WEBP/BMP/TIFF；拖拽时蓝色高亮">
+    <rect x="28" y="98" width="310" height="160" rx="6" class="wire2"/>
+    <text class="chip-num" x="183" y="178">01</text>
+    <text class="chip-lbl" x="183" y="200">⬇ 拖拽图片或文件夹到此处</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c1)" data-num="W1-C1-02" data-name="文件列表" data-desc="已加载图片列表；点击选中 → 预览自动刷新；✕ 移除；多图一次拖入会追加到列表">
+    <rect x="28" y="268" width="310" height="368" rx="5"/>
+    <text class="chip-num" x="183" y="452">02</text>
+    <text class="chip-lbl" x="183" y="472">📋 文件列表（点击切换预览）</text>
+  </g>
+
+  <!-- C2 右栏 -->
+  <rect class="wire" x="356" y="72" width="826" height="570" rx="5"/>
+  <text class="zone-lb" x="366" y="89" fill="var(--z-c2)">W1-C2 右栏 · 宽 826（自适应）</text>
+
+  <!-- 参数面板 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-01" data-name="参数面板标题" data-desc="暗色横条 · 无独立标题文字，功能分区">
+    <rect x="366" y="98" width="806" height="36" rx="5"/>
+    <text class="chip-num" x="769" y="116">01 参数区</text>
+  </g>
+
+  <!-- 参数行 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-02" data-name="色数 slider + number" data-desc="3~12；默认 6；label「色数」；改任何参数 350ms debounce 自动刷新预览">
+    <rect x="366" y="142" width="180" height="32" rx="4"/>
+    <text class="chip-num" x="456" y="158">02</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-03" data-name="模板下拉" data-desc="6 种内置：横版 1920×1080（默认）/ 竖版 1080×1920 / 方版 1080×1080 / 紧凑 1200×800 / 缩略 800×450 / 色板 1200×240（无图纯色板）">
+    <rect x="552" y="142" width="200" height="32" rx="4"/>
+    <text class="chip-num" x="652" y="158">03</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-04" data-name="主题下拉" data-desc="深色（默认 #18181A）/ 浅色（#F5F5F7）；画布背景色 + 文字颜色自动适配反色">
+    <rect x="758" y="142" width="120" height="32" rx="4"/>
+    <text class="chip-num" x="818" y="158">04</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-05" data-name="裁切 checkbox" data-desc="默认开启；自动裁除电影上下黑边后再提取主色，让主色提取更准">
+    <rect x="884" y="142" width="90" height="32" rx="4"/>
+    <text class="chip-num" x="929" y="158">05</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-06" data-name="格式下拉" data-desc="JPG（默认 quality 0.92，比 PNG 小 60~70%）/ PNG（无损）；输出落盘时扩展名跟随">
+    <rect x="366" y="182" width="180" height="32" rx="4"/>
+    <text class="chip-num" x="456" y="198">06</text>
+  </g>
+
+  <!-- 生成按钮 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-07" data-name="🚀 生成色卡按钮" data-desc="主按钮（accent 蓝色）；点击后按当前参数对所有文件列表中的图片**逐张生成**，输出到**原图所在目录**，冲突自动编号（色卡 → 色卡 (2) → 色卡 (3)）；预览落临时目录不污染原图目录">
+    <rect x="366" y="222" width="220" height="40" rx="6" fill="#2E8AB0" stroke="#2E8AB0"/>
+    <text class="chip-num" x="476" y="242" style="fill:#0F0F0F">07</text>
+  </g>
+
+  <!-- 预览区 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-08" data-name="预览区" data-desc="实时显示当前参数下的色卡效果；debounce 350ms；选中文件后自动生成首张预览；img src 加 ?t=Date.now() 绕开 Electron file:// 缓存；参数变化后自动刷新">
+    <rect x="366" y="272" width="806" height="300" rx="6" class="wire2"/>
+    <text class="chip-num" x="769" y="422">08</text>
+    <text class="chip-lbl" x="769" y="442">🖼 预览区（参数变化自动刷新）</text>
+  </g>
+
+  <!-- 日志面板 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-09" data-name="日志面板" data-desc="底部灰条；显示处理进度、成功/失败结果、错误详情；滚动到最新一条；主色提取完成后逐张输出文件名 + 耗时">
+    <rect x="366" y="580" width="806" height="56" rx="5"/>
+    <text class="chip-num" x="769" y="608">09</text>
+    <text class="chip-lbl" x="769" y="628">📋 日志面板</text>
+  </g>
+
+  <!-- 浮层 -->
+  <g class="chip" style="--z:var(--z-e)" data-num="W1-E-01" data-name="空状态占位" data-desc="未选中文件时预览区显示：下载图标 + 提示文字「选择图片后自动生成预览」">
+    <rect x="720" y="430" width="160" height="60" rx="5"/>
+    <text class="chip-num" x="800" y="456">E-01</text>
+  </g>
+</svg>
+<figcaption>图 1 · W1 主窗口总览（点击编号芯片查看说明；虚线 = 容器/浮层）</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+<thead><tr><th>编号</th><th>区域</th><th>说明</th></tr></thead>
+<tbody>
+<tr data-num="W1-R1"><td class="num">W1-R1</td><td>顶栏</td><td>高 48；01 Logo + 02 品牌名 HuePick + 03 动态版本号 v1.0.0 + 04 窗口标题（Electron title）</td></tr>
+<tr data-num="W1-C1"><td class="num">W1-C1</td><td>左栏</td><td>01 拖拽区（虚线框，支持多选） · 02 文件列表（点击切换预览，✕ 移除）</td></tr>
+<tr data-num="W1-C2"><td class="num">W1-C2</td><td>右栏</td><td>01 参数区标题 · 02 色数(3~12) · 03 模板(6 种) · 04 主题(深/浅) · 05 裁切开关 · 06 格式(JPG/PNG) · 07 🚀 生成按钮 · 08 实时预览区 · 09 日志面板</td></tr>
+<tr data-num="W1-E-01"><td class="num">W1-E-01</td><td>空状态浮层</td><td>未选图时预览区占位：下载图标 + 提示文字</td></tr>
+</tbody></table></div>
+
+<!-- ========== R1 顶栏放大 ========== -->
+<h2 id="w1r1"><span class="no">§2</span>W1-R1 顶栏 · 4 项</h2>
+<p class="lead">Electron BrowserWindow 创建时设置 icon（<code>build/icon.ico</code>，9 种尺寸打包）和 title（「HuePick — 拾色」）。顶栏版本号通过主进程 IPC 链路从 package.json 单一来源读取：main.js fs.readFileSync → ipcMain.handle('app-version') → preload getVersion() → renderer DOMContentLoaded 写入 <code>#ver</code>。</p>
+
+<figure>
+<svg viewBox="0 0 1200 96" role="img" aria-label="W1-R1 顶栏放大图">
+  <rect class="wire" x="6" y="8" width="1188" height="80" rx="6"/>
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-01" data-name="Logo" data-desc="build/icon.ico 9 尺寸（16~1024px）；窗口标题栏显示 28px 版本；任务栏 icon 自动取用对应尺寸">
+    <rect x="20" y="32" width="30" height="24" rx="4"/><text class="chip-num" x="35" y="45">01</text>
+  </g>
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-02" data-name="品牌名 HuePick" data-desc="加粗 16px；跟 Logo 紧贴无 gap">
+    <rect x="56" y="32" width="78" height="24" rx="4"/><text class="chip-num" x="95" y="45">02</text>
+  </g>
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-03" data-name="版本号 v1.0.0" data-desc="版本号唯一来源 = package.json；3 步链路：main.js 启动 fs.readFileSync('package.json') → ipcMain.handle('app-version', () => PKG_VERSION) → preload.js getVersion() → renderer document.getElementById('ver').textContent = 'v' + v">
+    <rect x="140" y="32" width="62" height="24" rx="4"/><text class="chip-num" x="171" y="45">03</text>
+  </g>
+  <g class="chip" style="--z:var(--z-r1)" data-num="W1-R1-04" data-name="窗口标题 HuePick — 拾色" data-desc="BrowserWindow.title；操作系统任务栏显示；关闭主窗口时 app.quit()">
+    <rect x="1040" y="32" width="140" height="24" rx="4"/><text class="chip-num" x="1110" y="45">04</text>
+  </g>
+</svg>
+<figcaption>图 2 · R1 横向排布顺序（左 → 右：Logo → 品牌名 → 版本号 · 最右：窗口标题）</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+<thead><tr><th>编号</th><th>控件</th><th>说明</th></tr></thead>
+<tbody>
+<tr data-num="W1-R1-01"><td class="num">W1-R1-01</td><td>彩色胶片 Logo</td><td>build/icon.ico（9 尺寸）；BrowserWindow.icon = path.join(__dirname, '..', 'build', 'icon.ico')</td></tr>
+<tr data-num="W1-R1-02"><td class="num">W1-R1-02</td><td>品牌名 HuePick</td><td>index.html #ver 前兄弟 span；color: #E8E8E8；font-weight: 600</td></tr>
+<tr data-num="W1-R1-03"><td class="num">W1-R1-03</td><td>版本号 v1.0.0</td><td>index.html span#ver（初始硬编码占位 v0.5.0，启动后被 app.js 异步改写）；主进程 IPC 链路单一来源</td></tr>
+<tr data-num="W1-R1-04"><td class="num">W1-R1-04</td><td>窗口标题</td><td>Electron BrowserWindow.title = 'HuePick — 拾色'</td></tr>
+</tbody></table></div>
+
+<!-- ========== C1 左栏 ========== -->
+<h2 id="w1c1"><span class="no">§3</span>W1-C1 左栏 · 拖拽区 + 文件列表</h2>
+<p class="lead">左侧固定宽 330px 面板。顶部虚线拖拽区（半透明 border）接受文件/文件夹拖入；拖拽事件同时监听 document（全局）和 #drop（视觉反馈）；双路径合并（dataTransfer.files + webkitGetAsEntry），Set 去重。下方文件列表是当前选中的主数据源。</p>
+
+<figure>
+<svg viewBox="0 0 660 620" role="img" aria-label="C1 左栏放大图">
+  <rect class="wire" x="6" y="8" width="648" height="604" rx="6"/>
+  <g class="chip" style="--z:var(--z-c1)" data-num="W1-C1-01" data-name="拖拽区" data-desc=".dropzone { border: 2px dashed #444; border-radius: 12px; height: 160px }；dragover 时 border-color 变 #2E8AB0 + 背景 rgba(46,138,176,.08)；dataTransfer.files 与 webkitGetAsEntry 双路径合并 Set 去重">
+    <rect x="20" y="20" width="620" height="170" rx="8" class="wire2"/>
+    <text class="chip-num" x="330" y="80">01</text>
+    <text class="lbl-m" x="330" y="120" text-anchor="middle">⬇ 拖拽图片或文件夹到此处</text>
+    <text class="lbl-m" x="330" y="140" text-anchor="middle">支持 PNG / JPG / WEBP / BMP / TIFF</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c1)" data-num="W1-C1-02" data-name="文件列表" data-desc="ul#file-list；每个 li 包含：缩略图 32×32 + 文件名（截断） + 宽高信息 + ✕ 删除按钮；点击 li → 高亮 + 触发 generatePreview(selectedPath)">
+    <rect x="20" y="200" width="620" height="400" rx="6"/>
+    <text class="chip-num" x="330" y="400">02</text>
+    <text class="lbl-m" x="330" y="420" text-anchor="middle">📋 文件列表 · 点击切换预览 · ✕ 移除</text>
+  </g>
+</svg>
+<figcaption>图 3 · C1 左栏放大</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+<thead><tr><th>编号</th><th>控件</th><th>说明</th></tr></thead>
+<tbody>
+<tr data-num="W1-C1-01"><td class="num">W1-C1-01</td><td>拖拽区 .dropzone</td><td>document.addEventListener('dragover'/'drop') 全局接文件；#drop 仅视觉提示（classList.add('dragover')）；双路径合并 Set 去重；onDrop → addFiles(paths) → 自动选中第一张 → 触发预览</td></tr>
+<tr data-num="W1-C1-02"><td class="num">W1-C1-02</td><td>文件列表 ul#file-list</td><td>li.item { padding: 6px 10px; border-radius: 6px }；选中项 background rgba(46,138,176,.2) + 左侧 2px accent 色条；✕ button.ghost → removeFile(path)</td></tr>
+</tbody></table></div>
+
+<!-- ========== C2 右栏 ========== -->
+<h2 id="w1c2"><span class="no">§4</span>W1-C2 右栏 · 参数面板 + 生成 + 预览 + 日志</h2>
+<p class="lead">右侧宽 826px 自适应。从上到下依次：参数面板（2 行） → 生成按钮（主 accent 色） → 预览区（自适应高度） → 日志面板。**任何参数改动都会 350ms 防抖后自动刷新预览**（change + input 事件）。预览走 IPC generate-card 带 preview:true，落 %TEMP%\HuePick-preview\，不污染原图目录。</p>
+
+<figure>
+<svg viewBox="0 0 1200 500" role="img" aria-label="C2 右栏放大图">
+  <rect class="wire" x="6" y="8" width="1188" height="484" rx="6"/>
+
+  <!-- 参数面板行 1 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-02" data-name="色数" data-desc="param-row > label 两字；input type=number min=3 max=12 default=6；change+input 事件 → triggerPreviewDebounced">
+    <rect x="20" y="20" width="180" height="34" rx="4"/><text class="chip-num" x="110" y="37">02 色数</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-03" data-name="模板" data-desc="6 种内置选项；见第六节模板图鉴">
+    <rect x="208" y="20" width="220" height="34" rx="4"/><text class="chip-num" x="318" y="37">03 模板</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-04" data-name="主题" data-desc="深色/浅色；改变画布背景色 + 反推文字颜色">
+    <rect x="436" y="20" width="140" height="34" rx="4"/><text class="chip-num" x="506" y="37">04 主题</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-05" data-name="裁切" data-desc="checkbox；默认开启；自动裁除电影上下黑边后再提取主色">
+    <rect x="584" y="20" width="110" height="34" rx="4"/><text class="chip-num" x="639" y="37">05 裁切</text>
+  </g>
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-06" data-name="格式" data-desc="JPG 默认 quality 0.92；PNG 无损">
+    <rect x="702" y="20" width="160" height="34" rx="4"/><text class="chip-num" x="782" y="37">06 格式</text>
+  </g>
+
+  <!-- 生成按钮 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-07" data-name="🚀 生成色卡" data-desc="主 accent 色按钮（#2E8AB0）；点击 → 对 file-list 中所有图片逐张 generateCard；输出到原图所在目录 + 冲突自动编号；preview:true 只在预览链路，不污染">
+    <rect x="20" y="62" width="220" height="40" rx="6" fill="#2E8AB0" stroke="#2E8AB0"/>
+    <text class="chip-num" x="130" y="82" style="fill:#0F0F0F;font-weight:700">07</text>
+  </g>
+
+  <!-- 预览区 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-08" data-name="预览区" data-desc="自适应高度；img src = path + '?t=' + Date.now() 绕开 file:// 缓存；空状态显示 E-01 占位图；参数改动 350ms debounce 自动刷新">
+    <rect x="20" y="112" width="1160" height="340" rx="6" class="wire2"/>
+    <text class="chip-num" x="600" y="282">08</text>
+    <text class="lbl-m" x="600" y="302" text-anchor="middle">🖼 实时预览区（参数变化自动刷新）</text>
+  </g>
+
+  <!-- 日志 -->
+  <g class="chip" style="--z:var(--z-c2)" data-num="W1-C2-09" data-name="日志面板" data-desc="ul#log；li.info 灰 / li.err 红；自动滚动到底部；generateCard 每完成一张追加一条">
+    <rect x="20" y="460" width="1160" height="18" rx="4"/>
+    <text class="chip-num" x="600" y="469">09 日志</text>
+  </g>
+</svg>
+<figcaption>图 4 · C2 右栏放大</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+<thead><tr><th>编号</th><th>控件</th><th>说明</th></tr></thead>
+<tbody>
+<tr data-num="W1-C2-02"><td class="num">W1-C2-02</td><td>色数</td><td>label「色数」两字 + input number min=3 max=12 default=6；改任何参数 350ms debounce 触发 previewDebounced()</td></tr>
+<tr data-num="W1-C2-03"><td class="num">W1-C2-03</td><td>模板</td><td>6 种：landscape 1920×1080（默认）/ portrait 1080×1920 / square 1080×1080 / compact 1200×800 / thumb 800×450 / palette 1200×240（无图纯色板）</td></tr>
+<tr data-num="W1-C2-04"><td class="num">W1-C2-04</td><td>主题</td><td>深色（#18181A，默认）/ 浅色（#F5F5F7）；画布背景色传入 canvas 渲染；文字颜色由 inkColor(bg) 自动反色</td></tr>
+<tr data-num="W1-C2-05"><td class="num">W1-C2-05</td><td>裁切</td><td>checkbox 选中后 cropper.cropBlackBars() 在 extractPalette 之前执行，避免电影上下黑边稀释主色</td></tr>
+<tr data-num="W1-C2-06"><td class="num">W1-C2-06</td><td>格式</td><td>影响 cardRenderer.toFile() format 参数；jpg → canvas.toFile(path, {format:'jpeg',quality:0.92})；png → format:'png'；主进程根据扩展名决定输出路径</td></tr>
+<tr data-num="W1-C2-07"><td class="num">W1-C2-07</td><td>🚀 生成色卡按钮</td><td>主 accent 色；payload.preview=false（默认）→ 输出到原图目录 + 冲突自动编号（色卡 → 色卡 (2) → 色卡 (3)）；payload.preview=true 时走预览链路落 %TEMP%\HuePick-preview\</td></tr>
+<tr data-num="W1-C2-08"><td class="num">W1-C2-08</td><td>预览区 img#preview</td><td>src = pathToUrl(r.outputPath) + '?t=' + Date.now() 绕开 Electron file:// 缓存；选中文件自动生成首张；参数变化 350ms debounce 自动刷新；输出路径始终为 temp 目录（preview:true）不污染原图目录</td></tr>
+<tr data-num="W1-C2-09"><td class="num">W1-C2-09</td><td>日志 ul#log</td><td>li.info 前景色 var(--muted)；li.err 前景色 #E07A45；每次 generateCard 返回后 li 追加 + scrollTop=scrollHeight</td></tr>
+<tr data-num="W1-E-01"><td class="num">W1-E-01</td><td>空状态占位</td><td>未选中文件时显示；icon + 提示文字；选中文件后隐藏由 img#preview 取代</td></tr>
+</tbody></table></div>
+
+<!-- ========== 参数速查 ========== -->
+<h2 id="params"><span class="no">§5</span>参数详解速查</h2>
+<div class="kv">
+<b>模板 → TEMPLATE_SIZES</b><br>
+landscape 1920×1080（默认） · portrait 1080×1920 · square 1080×1080 · compact 1200×800 · thumb 800×450 · palette 1200×240
+</div>
+<div class="kv">
+<b>主色提取算法</b><br>
+extractPalette() 基于 k-means 聚类（quantize 色彩量化）；cropBars=true 时先 cropBlackBars() 裁掉电影上下黑边；主色数量 3~12（默认 6）
+</div>
+<div class="kv">
+<b>渲染链路</b><br>
+cardRenderer.generateCard(sourcePath, options) → Canvas(cardWidth, cardHeight) → layout 分支（横/竖/自动网格/palette）→ canvas.toFile(outputPath, {format, quality:0.92})
+</div>
+<div class="kv">
+<b>字体自适应</b><br>
+scale = clamp(cardWidth/1920, 0.5, 1)；所有字号 padding gap 等按比例缩放；clamp Math.max(...) 保证小画布仍可读
+</div>
+<div class="kv">
+<b>打包配置</b><br>
+electron-builder win nsis；"icon": "build/icon.ico"；build/**/* 进 asar；preload.js 中 path.join(__dirname, '..', 'build', 'icon.ico') 打包后路径仍有效
+</div>
+
+<footer>
+*HuePick v1.0.0 · UI Layout Map · 2026-10-20 · 编号真源 = 本文件 + docs/ 目录*
+</footer>
+
+</div><!-- /wrap -->
+
+<!-- 状态栏 -->
+<div id="statusbar">
+  <span class="hint">点击图中任意编号芯片查看说明 · </span>
+  <span id="sb-hint">（未选中）</span>
+</div>
+
+<script>
+(function(){
+  const chips = document.querySelectorAll('.chip');
+  const rows = document.querySelectorAll('tr[data-num]');
+  const hint = document.getElementById('sb-hint');
+  let curNum = null;
+
+  function setActive(num, name, desc){
+    chips.forEach(c => c.classList.toggle('on', c.dataset.num === num));
+    rows.forEach(r => r.classList.toggle('hl', r.dataset.num === num));
+    if(desc){
+      hint.textContent = num + ' · ' + name + ' — ' + desc;
+    }
+    curNum = num;
+  }
+
+  chips.forEach(c => {
+    c.addEventListener('click', () => {
+      setActive(c.dataset.num, c.dataset.name, c.dataset.desc);
+    });
+  });
+
+  rows.forEach(r => {
+    const num = r.dataset.num;
+    const chip = document.querySelector('.chip[data-num="' + num + '"]');
+    r.style.cursor = 'pointer';
+    r.addEventListener('click', () => {
+      if(chip) setActive(num, chip.dataset.name, chip.dataset.desc);
+    });
+  });
+
+  // 按数字键 1-9 跳转到对应编号（如果存在）
+  document.addEventListener('keydown', (e) => {
+    if(e.key >= '1' && e.key <= '9' && curNum){
+      const next = curNum.replace(/-\d+$/, '-0' + e.key);
+      const chip = document.querySelector('.chip[data-num="' + next + '"]');
+      if(chip) setActive(next, chip.dataset.name, chip.dataset.desc);
+    }
+  });
+})();
+</script>
+</body>
+</html>
