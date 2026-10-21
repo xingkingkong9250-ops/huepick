@@ -1,4 +1,4 @@
-# HuePick Desktop Launcher (PowerShell 5+)
+﻿# HuePick Desktop Launcher (PowerShell 5+)
 # 参考 PianAssistant: 关闭旧实例 → 环境检查 → 启动 dist/dev
 # 日志：%TEMP%\HuePick.run.log
 
