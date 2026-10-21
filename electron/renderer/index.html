@@ -8,30 +8,26 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">🎨</span>
-      <span class="name">HuePick</span>
-      <span class="ver" id="ver">v0.5.0</span>
-    </div>
-    <div class="actions">
-      <button id="btn-files">选择图片</button>
-      <button id="btn-folder">选择文件夹</button>
-      <button id="btn-clear" class="ghost">清空</button>
-    </div>
-  </header>
-
   <main class="layout">
-    <!-- 左栏：文件列表 -->
+    <!-- 左栏：品牌 + 拖拽 + 文件列表 + 清除按钮 -->
     <section class="panel left">
-      <div id="drop" class="dropzone">
+      <div class="brand">
+        <img class="logo" src="assets/logo.png" alt="HuePick" />
+        <span class="name">HuePick</span>
+      </div>
+
+      <div id="drop" class="dropzone" title="点击选择图片（可多选），或拖拽图片/文件夹到此处">
         <div class="drop-inner">
           <div class="drop-icon">⬇</div>
           <div class="drop-hint">拖拽图片或文件夹到此处</div>
-          <div class="drop-hint-sm">支持 PNG / JPG / WEBP / BMP / TIFF</div>
+          <div class="drop-hint-sm">单击选择图片 · <span class="link" id="link-folder">选择文件夹</span></div>
+          <div class="drop-hint-xs">支持 PNG / JPG / WEBP / BMP / TIFF</div>
         </div>
       </div>
-      <div class="file-list" id="file-list"></div>
+
+      <div class="file-list" id="file-list" tabindex="0"></div>
+
+      <button id="btn-clear" class="clear-btn">清空列表</button>
     </section>
 
     <!-- 右栏：参数 + 预览 -->
@@ -82,13 +78,20 @@
       <div class="preview" id="preview">
         <div class="preview-empty">
           <div class="pe-icon">🎯</div>
-          <div>选择图片后点击生成</div>
+          <div>选择图片后自动生成预览</div>
         </div>
       </div>
 
       <div class="log" id="log"></div>
     </section>
   </main>
+
+  <!-- 底边栏：版本 + 状态提示 -->
+  <footer class="statusbar">
+    <span class="status-ver" id="ver">v1.1.0</span>
+    <span class="status-sep">·</span>
+    <span class="status-text" id="status-text">就绪</span>
+  </footer>
 
   <script src="app.js"></script>
 </body>

@@ -4,9 +4,10 @@ const logEl = $('#log');
 const listEl = $('#file-list');
 const previewEl = $('#preview');
 
-const state = { files: [], selectedIdx: -1 };
+// selected: Set<number>，多选；lastClickedIdx: Shift 锚点 + 预览目标
+const state = { files: [], selected: new Set(), lastClickedIdx: -1 };
 
-// ============ 日志 ============
+// ============ 日志 & 底栏状态 ============
 function log(msg, cls = 'info') {
   const div = document.createElement('div');
   div.className = cls;
@@ -16,18 +17,29 @@ function log(msg, cls = 'info') {
   console.log(`[HuePick.${cls}] ${msg}`);
 }
 
+function setStatus(text) {
+  const el = $('#status-text');
+  if (el) el.textContent = text;
+}
+
+function updateStatusBar() {
+  const n = state.files.length;
+  const sel = state.selected.size;
+  if (n === 0) setStatus('就绪');
+  else if (sel === 0) setStatus(`共 ${n} 张图片`);
+  else setStatus(`已选中 ${sel} / ${n} 张`);
+}
+
 // ============ 路径解析 ============
 const EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'];
 function isImagePath(p) { return EXTS.some(e => p.toLowerCase().endsWith(e)); }
 
 /** File → 真实路径，Electron 专用 */
 function getFilePath(file) {
-  // 优先用 Electron 官方 API（最可靠）
   if (window.huepick && window.huepick.getPathForFile) {
     const p = window.huepick.getPathForFile(file);
     if (p && typeof p === 'string' && p.length > 0) return p;
   }
-  // 回退：Electron 早期版本扩展的 File.path
   if (file.path && typeof file.path === 'string' && file.path.length > 0) return file.path;
   return null;
 }
@@ -42,15 +54,9 @@ function readEntry(entry) {
       const all = [];
       const readAll = () => {
         reader.readEntries(async (entries) => {
-          if (entries.length === 0) {
-            resolve(all);
-            return;
-          }
-          for (const e of entries) {
-            const sub = await readEntry(e);
-            all.push(...sub);
-          }
-          readAll(); // 继续读（目录可能分多次返回）
+          if (entries.length === 0) { resolve(all); return; }
+          for (const e of entries) all.push(...await readEntry(e));
+          readAll();
         }, () => resolve(all));
       };
       readAll();
@@ -66,20 +72,13 @@ async function pathsFromDrag(e) {
   const items = e.dataTransfer.items;
   const files = e.dataTransfer.files;
 
-  console.log('[HuePick.drag] items:', items?.length, 'files:', files?.length);
-
-  // 路径 1：dataTransfer.files + webUtils.getPathForFile
-  // Electron 官方推荐，对多选图片最稳；但无法区分文件夹 vs 文件
   if (files && files.length > 0) {
     for (let i = 0; i < files.length; i++) {
       const p = getFilePath(files[i]);
-      if (p && isImagePath(p)) { set.add(p); console.log('[HuePick.drag.file]', p); }
+      if (p && isImagePath(p)) set.add(p);
     }
   }
 
-  // 路径 2：items + webkitGetAsEntry（能处理文件夹递归）
-  // Chromium 在 Electron 里对多文件场景常只返回第一个 item 的 entry，
-  // 所以这条路径必须和路径 1 合并，不能互相遮挡
   if (items && items.length > 0 && items[0].webkitGetAsEntry) {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -90,24 +89,22 @@ async function pathsFromDrag(e) {
         const f = await new Promise((res) => entry.file ? entry.file(res) : res(null));
         if (f) {
           const p = getFilePath(f);
-          if (p && isImagePath(p)) { set.add(p); console.log('[HuePick.drag.entry] file:', p); }
+          if (p && isImagePath(p)) set.add(p);
         }
       } else if (entry.isDirectory) {
         const sub = await readEntry(entry);
         for (const f of sub) {
           const p = getFilePath(f);
-          if (p && isImagePath(p)) { set.add(p); console.log('[HuePick.drag.entry] dir:', p); }
+          if (p && isImagePath(p)) set.add(p);
         }
       }
     }
   }
 
-  const result = [...set];
-  console.log('[HuePick.drag] =>', result.length, 'unique paths');
-  return result;
+  return [...set];
 }
 
-// ============ 文件列表 ============
+// ============ 文件列表 & 选择逻辑（Windows 风格） ============
 function addPaths(paths) {
   const existing = new Set(state.files);
   let added = 0;
@@ -116,20 +113,69 @@ function addPaths(paths) {
   });
   if (added > 0) {
     log(`+${added} 张图片`, 'ok');
-    // 首次添加时自动选中第一张，触发预览
-    if (state.selectedIdx < 0 || state.selectedIdx >= state.files.length) {
-      state.selectedIdx = 0;
+    // 首次添加自动选中第一张
+    if (state.selected.size === 0 && state.files.length > 0) {
+      state.selected.add(0);
+      state.lastClickedIdx = 0;
     }
   }
   renderList();
   triggerPreviewDebounced();
 }
 
+/**
+ * 点击文件项 —— Windows 资源管理器选择逻辑
+ *  普通单击：单选
+ *  Ctrl+单击：切换选中（多选）
+ *  Shift+单击：从锚点连续选中
+ *  Ctrl+Shift+单击：从锚点连续加入选中
+ */
+function handleItemClick(i, e) {
+  const hasCtrl = e.ctrlKey || e.metaKey;
+  const hasShift = e.shiftKey;
+
+  if (hasShift && state.lastClickedIdx >= 0) {
+    // Shift 连选
+    const [a, b] = [Math.min(state.lastClickedIdx, i), Math.max(state.lastClickedIdx, i)];
+    if (!hasCtrl) state.selected.clear();
+    for (let k = a; k <= b; k++) state.selected.add(k);
+  } else if (hasCtrl) {
+    // Ctrl 切换
+    if (state.selected.has(i)) state.selected.delete(i);
+    else state.selected.add(i);
+    state.lastClickedIdx = i;
+  } else {
+    // 普通单选
+    state.selected.clear();
+    state.selected.add(i);
+    state.lastClickedIdx = i;
+  }
+
+  renderList();
+  triggerPreviewDebounced();
+}
+
+/** 删除当前选中项；若无选中则清空全部 */
+function removeSelected() {
+  if (state.selected.size > 0) {
+    const idxs = [...state.selected].sort((a, b) => b - a); // 倒序删除避免索引漂移
+    idxs.forEach(i => state.files.splice(i, 1));
+    log(`已删除 ${idxs.length} 张图片`, 'info');
+  } else {
+    state.files = [];
+    log('已清空列表', 'info');
+  }
+  state.selected.clear();
+  state.lastClickedIdx = -1;
+  renderList();
+  showPreviewEmpty();
+}
+
 function renderList() {
   listEl.innerHTML = '';
   state.files.forEach((f, i) => {
     const div = document.createElement('div');
-    div.className = 'file-item' + (i === state.selectedIdx ? ' selected' : '');
+    div.className = 'file-item' + (state.selected.has(i) ? ' selected' : '');
     const encodedPath = encodeURI(f).replace(/%5C/g, '/');
     div.innerHTML = `
       <img class="file-thumb" src="file:///${encodedPath}" />
@@ -140,26 +186,60 @@ function renderList() {
       <button class="file-remove" title="移除" data-i="${i}">✕</button>
     `;
     div.addEventListener('click', (e) => {
+      // ✕ 单项删除，不影响选中状态
       if (e.target.classList.contains('file-remove')) {
-        state.files.splice(i, 1);
-        if (state.selectedIdx >= state.files.length) state.selectedIdx = state.files.length - 1;
+        const removedIdx = parseInt(e.target.dataset.i);
+        state.files.splice(removedIdx, 1);
+        // 修正选中索引
+        const newSel = new Set();
+        state.selected.forEach(idx => {
+          if (idx < removedIdx) newSel.add(idx);
+          else if (idx > removedIdx) newSel.add(idx - 1);
+        });
+        state.selected = newSel;
+        if (state.lastClickedIdx === removedIdx) state.lastClickedIdx = -1;
+        else if (state.lastClickedIdx > removedIdx) state.lastClickedIdx--;
         renderList();
         triggerPreviewDebounced();
         return;
       }
-      state.selectedIdx = i;
-      renderList();
-      triggerPreviewDebounced();
+      handleItemClick(i, e);
     });
     listEl.appendChild(div);
   });
   $('#drop').style.display = state.files.length === 0 ? 'block' : 'none';
+
+  // 更新清除按钮文本
+  const btn = $('#btn-clear');
+  btn.textContent = state.selected.size > 0
+    ? `删除选中 (${state.selected.size})`
+    : '清空列表';
+  btn.disabled = state.files.length === 0;
+
+  updateStatusBar();
 }
+
+// ============ 键盘：Ctrl+A / Delete / Esc ============
+listEl.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'a') {
+    e.preventDefault();
+    state.selected = new Set(state.files.map((_, i) => i));
+    renderList();
+    triggerPreviewDebounced();
+  } else if (e.key === 'Delete') {
+    e.preventDefault();
+    removeSelected();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    state.selected.clear();
+    state.lastClickedIdx = -1;
+    renderList();
+  }
+});
 
 // ============ 拖拽（统一 document 接收，#drop 仅视觉提示） ============
 const dropEl = $('#drop');
 
-// 所有元素默认拦截（Electron 允许原生文件拖拽）
 document.addEventListener('dragover', (e) => {
   e.preventDefault();
   dropEl.classList.add('dragover');
@@ -180,22 +260,19 @@ async function onDrop(e) {
 }
 document.addEventListener('drop', onDrop);
 
-// ============ 按钮 ============
-$('#btn-files').addEventListener('click', async () => {
+// ============ 拖拽区点击 = 选图片 / 选文件夹 ============
+dropEl.addEventListener('click', async () => {
   const paths = await window.huepick.pickFiles();
   if (paths && paths.length > 0) addPaths(paths);
 });
-$('#btn-folder').addEventListener('click', async () => {
+$('#link-folder').addEventListener('click', async (e) => {
+  e.stopPropagation();
   const result = await window.huepick.pickFolder();
   if (result && result.files.length > 0) addPaths(result.files);
 });
-$('#btn-clear').addEventListener('click', () => {
-  state.files = [];
-  state.selectedIdx = -1;
-  renderList();
-  showPreviewEmpty();
-  log('已清空', 'info');
-});
+
+// ============ 清除按钮（智能：选中 → 删除选中；无选中 → 清空） ============
+$('#btn-clear').addEventListener('click', removeSelected);
 
 function showPreviewEmpty() {
   const d = document.createElement('div');
@@ -212,10 +289,21 @@ function readPayload() {
     cropBars: $('#p-crop').checked,
     template: $('#p-template').value,
     theme: $('#p-theme').value,
-    outputFormat: $('#p-format').value,  // 'jpg' | 'png'
+    outputFormat: $('#p-format').value,
     exportFormats: [],
     exportHarmony: false,
   };
+}
+
+// ============ 预览目标（选中项中最后一次点击的那个） ============
+function getPreviewTarget() {
+  if (state.lastClickedIdx >= 0 && state.lastClickedIdx < state.files.length) {
+    return state.files[state.lastClickedIdx];
+  }
+  if (state.selected.size > 0) {
+    return state.files[[...state.selected][0]];
+  }
+  return state.files[0] || null;
 }
 
 // ============ 单文件预览生成（debounce） ============
@@ -232,7 +320,7 @@ async function generatePreview(targetFile) {
   }
 }
 function triggerPreviewDebounced() {
-  const f = state.files[state.selectedIdx >= 0 ? state.selectedIdx : 0];
+  const f = getPreviewTarget();
   if (!f) return;
   if (previewDebounce) clearTimeout(previewDebounce);
   previewDebounce = setTimeout(() => generatePreview(f), 350);
@@ -247,12 +335,14 @@ $('#btn-generate').addEventListener('click', async () => {
   const btn = $('#btn-generate');
   btn.disabled = true;
   $('#gen-text').textContent = '⏳ 生成中…';
+  setStatus('正在生成色卡…');
 
   const outputs = [];
   for (let i = 0; i < state.files.length; i++) {
     const f = state.files[i];
     const name = f.split(/[\\/]/).pop();
     log(`(${i + 1}/${state.files.length}) ${name}`, 'info');
+    setStatus(`正在生成 (${i + 1}/${state.files.length}) ${name}`);
     try {
       const r = await window.huepick.generateCard({ ...payload, sourcePath: f });
       if (r.ok) {
@@ -274,8 +364,10 @@ $('#btn-generate').addEventListener('click', async () => {
   if (outputs.length > 0) {
     showPreview(outputs[0]);
     log(`完成：${outputs.length}/${state.files.length} 成功`, 'ok');
+    setStatus(`已生成 ${outputs.length}/${state.files.length} 张色卡`);
   } else {
     log('全部失败，请检查 DevTools Console', 'err');
+    setStatus('生成失败');
   }
 });
 
@@ -335,18 +427,18 @@ async function showPreview(result) {
 // ============ 初始化 ============
 renderList();
 showPreviewEmpty();
-log('HuePick 桌面版就绪（DevTools 已打开）', 'ok');
+log('HuePick 桌面版就绪', 'ok');
 
 // 参数变化 → debounce 自动刷新预览
-const previewTriggers = ['#p-colors', '#p-template', '#p-theme', '#p-crop'];
+const previewTriggers = ['#p-colors', '#p-template', '#p-theme', '#p-crop', '#p-format'];
 previewTriggers.forEach(sel => {
   const el = document.querySelector(sel);
   if (!el) return;
   el.addEventListener('change', triggerPreviewDebounced);
-  el.addEventListener('input', triggerPreviewDebounced); // number 滑块
+  el.addEventListener('input', triggerPreviewDebounced);
 });
 
-// 版本号：从主进程 IPC 拉取（单一来源）
+// 版本号：从主进程 IPC 拉取（单一来源），写到底栏
 document.addEventListener('DOMContentLoaded', async () => {
   const el = document.getElementById('ver');
   if (!el) return;
