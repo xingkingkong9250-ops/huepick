@@ -26,20 +26,34 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 16px;
   border-bottom: 1px solid #2a2a30;
 }
 .brand .logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   flex-shrink: 0;
 }
-.brand .name {
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.brand-name-cn {
   font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 0.5px;
+  font-size: 26px;
+  letter-spacing: 3px;
+  line-height: 1.2;
+}
+.brand-name-en {
+  font-size: 13px;
+  color: #8e8e93;
+  letter-spacing: 1px;
+  line-height: 1.2;
 }
 
 button {

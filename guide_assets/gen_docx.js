@@ -8,7 +8,7 @@ const {
 } = require('docx');
 
 const ASSETS = path.join(__dirname);
-const OUT_PATH = path.join(__dirname, '..', '..', 'HuePick_安装使用说明_v1.0.0.docx');
+const OUT_PATH = path.join(__dirname, '..', '..', 'HuePick_安装使用说明_v1.2.0.docx');
 const CJK = { ascii: "Arial", hAnsi: "Arial", eastAsia: "Microsoft YaHei" };
 
 const T = (text, opts = {}) => new TextRun({ text, font: CJK, ...opts });
@@ -47,7 +47,7 @@ function makeTable(rows, colWidths) {
 const children = [];
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 1200, after: 200 }, children: [T('HuePick', { bold: true, size: 72 })] }));
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [T('色卡生成器 · 安装使用说明', { size: 36, color: "444444" })] }));
-children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [T('v1.0.0', { size: 28, color: "666666" })] }));
+children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [T('v1.2.0', { size: 28, color: "666666" })] }));
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600 }, children: [T('2026-10-20', { size: 24, color: "999999" })] }));
 children.push(new Paragraph({ children: [new PageBreak()] }));
 
@@ -55,7 +55,7 @@ children.push(new Paragraph({ children: [new PageBreak()] }));
 children.push(H1('一、版本与系统要求'));
 children.push(makeTable([
   ['项目', '要求'],
-  ['版本', 'v1.0.0'],
+  ['版本', 'v1.2.0'],
   ['操作系统', 'Windows 10 / Windows 11（64 位）'],
   ['磁盘空间', '安装约 94 MB'],
   ['预装环境', '无 —— Node.js、Electron、Skia 图形库已全部打包进安装包'],
@@ -63,7 +63,7 @@ children.push(makeTable([
 
 // 二、安装步骤
 children.push(H1('二、安装步骤'));
-['1. 双击 HuePick-Setup-1.0.0.exe 启动安装向导。',
+['1. 双击 HuePick-Setup-1.2.0.exe 启动安装向导。',
  '2. 欢迎页 → 「下一步」。',
  '3. 选择安装位置（默认 C:\\Users\\<你的用户名>\\AppData\\Local\\Programs\\HuePick），建议保持默认。',
  '4. 附加任务：勾选「创建桌面快捷方式」（可选）→ 「下一步」。',
@@ -79,17 +79,19 @@ children.push(P('• 卸载：开始菜单 →「HuePick」→「卸载 HuePick�
 
 // 四、主界面图鉴
 children.push(H1('四、主界面图鉴'));
-children.push(P('启动后会看到 HuePick 的三栏布局：顶栏 · 左栏文件列表 · 右栏参数与预览。'));
-children.push(...IMG('ui_main.png', 700, 430, '图 4-1 主界面全景（彩色胶片 Logo + v1.0.0）'));
+children.push(P('启动后会看到 HuePick 的两栏布局 + 底栏：左栏文件区 · 右栏参数与预览 · 底部状态栏。'));
+children.push(...IMG('ui_main.png', 700, 423, '图 4-1 主界面全景（彩色胶片 Logo + 中文「拾色」+ v1.2.0）'));
 children.push(makeTable([
   ['区域', '功能'],
-  ['① 顶栏', '彩色胶片 Logo + 品牌名 + 动态版本号（从 package.json 读取）'],
-  ['② 左栏拖拽区', '把图片拖进来即可自动识别；支持一次拖多张'],
-  ['③ 左栏文件列表', '已加载的图片，点击切换当前预览；✕ 移除'],
-  ['④ 右栏参数面板', '色数 / 模板 / 主题 / 裁切 / 格式 — 改任何一项自动刷新预览'],
-  ['⑤ 预览区', '实时显示当前参数下的色卡效果'],
-  ['⑥ 生成按钮', '点击后按当前参数批量生成色卡，输出到原图所在目录'],
-  ['⑦ 日志面板', '显示处理进度与结果'],
+  ['① 左栏品牌区', '彩色胶片 Logo + 中文「拾色」+ 英文 HuePick（字号层级区分）'],
+  ['② 左栏拖拽区', '单击=选图片（可多选）；区内"选择文件夹"链接=选文件夹；或直接拖入'],
+  ['③ 左栏文件列表', '已加载的图片。支持 Windows 选择逻辑：单击/Ctrl 多选/Shift 连选/Ctrl+A/Delete/Esc'],
+  ['④ 左栏底部按钮', '智能切换：无选中显示「清空列表」，有选中显示「删除选中 (N)」'],
+  ['⑤ 右栏参数面板', '色数 / 模板 / 主题 / 裁切 / 格式 — 改任何一项自动刷新预览'],
+  ['⑥ 预览区', '实时显示当前参数下的色卡效果'],
+  ['⑦ 生成按钮', '点击后按当前参数批量生成色卡，输出到原图所在目录'],
+  ['⑧ 日志面板', '显示处理进度与结果'],
+  ['⑨ 底部状态栏', '左侧动态版本号 · 右侧实时状态（就绪/共 N 张/已选中 M/N/生成进度）'],
 ], [1800, 7226]));
 
 // 五、快速上手
@@ -101,7 +103,7 @@ children.push(H1('五、快速上手（30 秒出第一张色卡）'));
 
 // 六、模板图鉴
 children.push(H1('六、模板图鉴'));
-children.push(P('HuePick v1.0.0 提供 6 种内置模板，覆盖从大屏展示到截图标注的全部场景。'));
+children.push(P('HuePick v1.2.0 提供 6 种内置模板，覆盖从大屏展示到截图标注的全部场景。'));
 
 children.push(H2('6.1 横版（默认）— 1920×1080'));
 children.push(P('大图占 66% 画布，底部色块区自适应网格。适合做海报、桌面壁纸、作品集展示。'));
@@ -185,7 +187,7 @@ children.push(P('A：SmartScreen 对未签名程序的常规提示，点「更�
 
 // 落款
 children.push(HR());
-children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60 }, children: [T('HuePick v1.0.0 · 2026-10-20', { size: 22, color: "999999" })] }));
+children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60 }, children: [T('HuePick v1.2.0 · 2026-10-20', { size: 22, color: "999999" })] }));
 
 const doc = new Document({
   styles: {
@@ -199,7 +201,7 @@ const doc = new Document({
   numbering: { config: [] },
   sections: [{
     properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
-    headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [T('HuePick v1.0.0 安装使用说明', { size: 18, color: "999999" })] })] }) },
+    headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [T('HuePick v1.2.0 安装使用说明', { size: 18, color: "999999" })] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [T('第 ', { size: 18, color: "999999" }), new TextRun({ children: [PageNumber.CURRENT], size: 18, color: "999999", font: CJK }), T(' 页', { size: 18, color: "999999" })] })] }) },
     children
   }]
