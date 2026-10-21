@@ -48,6 +48,44 @@ function rgbCss(rgb: RGB): string {
 }
 
 /**
+ * 画占比 pill：半透明圆角底 + 白字，任何色块背景上都清晰可读
+ * @returns pill 总宽度
+ */
+function drawRatioPill(
+  ctx: any,
+  x: number, y: number,
+  ratio: number,
+  scale: number
+): number {
+  const text = `${(ratio * 100).toFixed(1)}%`;
+  const fontSize = Math.max(13, Math.round(20 * scale));
+  const padH = Math.round(8 * scale);
+  const padV = Math.round(4 * scale);
+
+  ctx.font = `bold ${fontSize}px ${FONT_FAMILY}`;
+  const textW = ctx.measureText(text).width;
+  const pillW = textW + padH * 2;
+  const pillH = fontSize + padV * 2;
+
+  // 半透明圆角底
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath();
+    ctx.roundRect(x, y, pillW, pillH, pillH / 2);
+    ctx.fill();
+  } else {
+    ctx.fillRect(x, y, pillW, pillH);
+  }
+
+  // 白字
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textBaseline = 'top';
+  ctx.fillText(text, x + padH, y + padV);
+
+  return pillW;
+}
+
+/**
  * 为单张图片生成色卡
  *
  * 版式自适应：
@@ -142,9 +180,11 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
     ctx.lineTo(cardWidth - pad, sepY);
     ctx.stroke();
 
-    // 7. 色块区
+    // 7. 色块区（palette 模式跳过底部比例条，其它模板预留比例条空间）
+    const ratioBarH = isPalette ? 0 : Math.round(24 * scale);
+    const ratioBarGap = isPalette ? 0 : Math.round(12 * scale);
     const swTop = sepY + Math.round(22 * scale);
-    const swBottom = cardHeight - pad;
+    const swBottom = cardHeight - pad - ratioBarH - ratioBarGap;
     const availWidth = cardWidth - pad * 2;
 
     // palette 模式：纯色板横条（不区分竖排/横排）
@@ -169,10 +209,7 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
         ctx.lineWidth = 1;
         ctx.strokeRect(x0, y0, swWidth, blockH);
 
-        ctx.fillStyle = textColorFor(color.rgb);
-        ctx.font = `${Math.max(10, Math.round(11 * scale))}px ${FONT_FAMILY}`;
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${(color.ratio * 100).toFixed(1)}%`, x0 + 6, y0 + 4);
+        drawRatioPill(ctx, x0 + 6, y0 + 4, color.ratio, scale);
 
         ctx.fillStyle = ink;
         ctx.font = `${hexSize}px ${FONT_FAMILY}`;
@@ -195,10 +232,7 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
         ctx.lineWidth = 1;
         ctx.strokeRect(x0, y0, blockWidth, rowHeight);
 
-        ctx.fillStyle = textColorFor(color.rgb);
-        ctx.font = `${Math.max(12, Math.round(16 * scale))}px ${FONT_FAMILY}`;
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${(color.ratio * 100).toFixed(1)}%`, x0 + Math.round(8 * scale), y0 + Math.round(6 * scale));
+        drawRatioPill(ctx, x0 + Math.round(8 * scale), y0 + Math.round(6 * scale), color.ratio, scale);
 
         ctx.fillStyle = ink;
         ctx.font = `${Math.max(14, Math.round(24 * scale))}px ${FONT_FAMILY}`;
@@ -230,16 +264,45 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
         ctx.lineWidth = 1;
         ctx.strokeRect(x0, y0, swWidth, swHeight);
 
-        ctx.fillStyle = textColorFor(color.rgb);
-        ctx.font = `${Math.max(12, Math.round(18 * scale))}px ${FONT_FAMILY}`;
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${(color.ratio * 100).toFixed(1)}%`, x0 + Math.round(10 * scale), y0 + Math.round(8 * scale));
+        drawRatioPill(ctx, x0 + Math.round(10 * scale), y0 + Math.round(8 * scale), color.ratio, scale);
 
         ctx.fillStyle = ink;
         ctx.font = `${Math.max(14, Math.round(26 * scale))}px ${FONT_FAMILY}`;
         ctx.textBaseline = 'top';
         ctx.fillText(color.hex, x0, y0 + swHeight + Math.round(10 * scale));
       });
+    }
+
+    // 7.5 底部配色比例条（palette 模式跳过——本身就是色块阵列）
+    if (!isPalette && colors.length > 0) {
+      const barY = cardHeight - pad - ratioBarH;
+      let ratioX = pad;
+      colors.forEach((color, i) => {
+        // 最后一段吃掉所有剩余宽度，避免浮点累计误差导致末尾缺 1px
+        const segW = i === colors.length - 1
+          ? (cardWidth - pad) - ratioX
+          : Math.round(availWidth * color.ratio);
+        if (segW <= 0) return;
+
+        ctx.fillStyle = color.hex;
+        ctx.fillRect(ratioX, barY, segW, ratioBarH);
+
+        // 段间分隔线
+        if (i > 0) {
+          ctx.strokeStyle = sep;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(ratioX + 0.5, barY);
+          ctx.lineTo(ratioX + 0.5, barY + ratioBarH);
+          ctx.stroke();
+        }
+        ratioX += segW;
+      });
+
+      // 外框
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pad + 0.5, barY + 0.5, availWidth - 1, ratioBarH - 1);
     }
 
     // 7. 保存 PNG
