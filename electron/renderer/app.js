@@ -339,7 +339,7 @@ $('#btn-generate').addEventListener('click', async () => {
 
   const btn = $('#btn-generate');
   btn.disabled = true;
-  $('#gen-text').textContent = '⏳ 生成中…';
+  $('#btn-generate').textContent = '⏳ 生成中…';
   setStatus('正在生成色卡…');
 
   const outputs = [];
@@ -364,7 +364,7 @@ $('#btn-generate').addEventListener('click', async () => {
   }
 
   btn.disabled = false;
-  $('#gen-text').textContent = '🚀 生成色卡';
+  $('#btn-generate').textContent = '生成色卡';
 
   if (outputs.length > 0) {
     showPreview(outputs[0]);
