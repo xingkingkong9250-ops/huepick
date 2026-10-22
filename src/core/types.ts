@@ -46,7 +46,7 @@ export interface HarmonyScheme {
 }
 
 /** 色卡模板 */
-export type TemplateId = 'landscape' | 'portrait' | 'square' | 'compact' | 'palette' | 'thumb' | 'custom';
+export type TemplateId = 'cinematic' | 'landscape' | 'portrait' | 'square' | 'compact' | 'palette' | 'thumb' | 'custom';
 
 /** 色卡主题 */
 export type ThemeId = 'dark' | 'light';

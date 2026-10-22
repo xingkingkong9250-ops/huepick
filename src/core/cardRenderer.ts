@@ -1,9 +1,10 @@
 import { Canvas, loadImage } from 'skia-canvas';
 import * as fs from 'fs';
 import * as path from 'path';
-import { CardOptions, ProcessResult, RGB, TemplateId } from './types';
-import { loadImageAsRGB, cropBlackBars, rgbToThumbnail } from './imageLoader';
+import { CardOptions, ProcessResult, RGB, TemplateId, ColorInfo } from './types';
+import { loadImageAsRGB, cropBlackBars, rgbToThumbnail, rgbToHex } from './imageLoader';
 import { extractPalette } from './paletteExtractor';
+import { analyzeLuma, LumaAnalysis } from './lumaAnalysis';
 
 /** 默认色卡参数 */
 const DEFAULT_CARD_WIDTH = 1920;
@@ -123,6 +124,11 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
     const colors = extractPalette(work.data, work.width, work.height, numColors);
     if (colors.length === 0) {
       throw new Error('未能从图片中提取到任何主色');
+    }
+
+    // 影视分析模板走独立渲染管线
+    if (template === 'cinematic') {
+      return await renderCinematicCard(sourcePath, work, colors, options);
     }
 
     // 4. 画布缩放因子（相对 1920 宽的基准字体/间距）
@@ -330,4 +336,242 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
       error: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+/** 影视分析模板 —— 六阶色卡语义命名 */
+const CINEMATIC_COLOR_NAMES = [
+  '暗部基底',
+  '暗中间调',
+  '核心相色',
+  '次亮调',
+  '亮中间调',
+  '高光反差',
+];
+
+/**
+ * 渲染影视分析色卡（1920×1080 固定）
+ * 布局：左侧大图 + 九宫格亮度分析 + 光影判断文字
+ *       右侧标题 + 六阶色卡列表
+ */
+async function renderCinematicCard(
+  sourcePath: string,
+  work: { data: Buffer; width: number; height: number },
+  colors: ColorInfo[],
+  options: CardOptions,
+): Promise<ProcessResult> {
+  const { outputPath, outputFormat = 'jpg', titleText } = options;
+  const W = 1920, H = 1080;
+
+  // 光影分析
+  const luma = analyzeLuma(work.data, work.width, work.height);
+
+  // 按亮度排序（暗→亮），确保6色
+  const sortedColors = [...colors].sort((a, b) => {
+    const lumA = 0.299 * a.rgb.r + 0.587 * a.rgb.g + 0.114 * a.rgb.b;
+    const lumB = 0.299 * b.rgb.r + 0.587 * b.rgb.g + 0.114 * b.rgb.b;
+    return lumA - lumB;
+  });
+  // 补足6色（若提取不足则插值复制）
+  while (sortedColors.length < 6 && sortedColors.length > 0) {
+    sortedColors.push({ ...sortedColors[sortedColors.length - 1] });
+  }
+  const sixColors = sortedColors.slice(0, 6);
+
+  const canvas = new Canvas(W, H);
+  const ctx = canvas.getContext('2d');
+
+  // 背景：浅灰
+  ctx.fillStyle = '#E8E8E8';
+  ctx.fillRect(0, 0, W, H);
+
+  const ink = '#1A1A1A';
+  const inkSecondary = '#555555';
+  const accentBlue = '#4A90D9';
+
+  // ========== 顶部标题栏 ==========
+  ctx.fillStyle = accentBlue;
+  ctx.font = `bold 22px ${FONT_FAMILY}`;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'right';
+  ctx.fillText('COLOR PALETTE ANALYSIS · 光影时段色卡', W - 40, 25);
+  ctx.textAlign = 'left';
+
+  // ========== 左栏：大图 ==========
+  const imgX = 40, imgY = 70;
+  const imgMaxW = 1120, imgMaxH = 500;
+  const thumbBuffer = await rgbToThumbnail(work.data, work.width, work.height, imgMaxW, imgMaxH);
+  const thumbImage = await loadImage(thumbBuffer);
+  // 居中放置
+  const drawX = imgX + Math.floor((imgMaxW - thumbImage.width) / 2);
+  const drawY = imgY + Math.floor((imgMaxH - thumbImage.height) / 2);
+  ctx.drawImage(thumbImage, drawX, drawY, thumbImage.width, thumbImage.height);
+
+  // 图片下方信息
+  let curY = imgY + imgMaxH + 20;
+  ctx.fillStyle = inkSecondary;
+  ctx.font = `14px ${FONT_FAMILY}`;
+  ctx.fillText(`CINEMATIC SOURCE FRAME · Resolution ${work.width}×${work.height} · Rec.709 Standard`, imgX, curY);
+
+  // ========== LUMA GRID 九宫格 ==========
+  curY += 30;
+  ctx.fillStyle = ink;
+  ctx.font = `bold 15px ${FONT_FAMILY}`;
+  ctx.fillText('LUMA GRID · 九宫格亮度分布', imgX, curY);
+
+  const gridSize = 55, gridGap = 6;
+  const gridStartX = imgX;
+  const gridStartY = curY + 25;
+
+  for (let gy = 0; gy < 3; gy++) {
+    for (let gx = 0; gx < 3; gx++) {
+      const val = luma.grid[gy][gx];
+      const cx = gridStartX + gx * (gridSize + gridGap);
+      const cy = gridStartY + gy * (gridSize + gridGap);
+
+      // 根据亮度值着色：暗→深灰，亮→浅灰
+      const shade = Math.round(255 - (val / 100) * 200);
+      ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
+      ctx.fillRect(cx, cy, gridSize, gridSize);
+
+      // 数值
+      ctx.fillStyle = val > 50 ? '#1A1A1A' : '#FFFFFF';
+      ctx.font = `bold 16px ${FONT_FAMILY}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${val}%`, cx + gridSize / 2, cy + gridSize / 2);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+    }
+  }
+
+  // 九宫格统计文字
+  const gridStatsY = gridStartY + 3 * (gridSize + gridGap) + 15;
+  ctx.fillStyle = inkSecondary;
+  ctx.font = `13px ${FONT_FAMILY}`;
+  const rowAvgs = [0, 1, 2].map(r => Math.round((luma.grid[r][0] + luma.grid[r][1] + luma.grid[r][2]) / 3));
+  ctx.fillText(`纵向 ${rowAvgs[0]} → ${rowAvgs[1]} → ${rowAvgs[2]}  最亮 ${luma.gridMax}%  最暗 ${luma.gridMin}%`, imgX, gridStatsY);
+  ctx.fillText(`分区极差 ${luma.verticalRange}%`, imgX, gridStatsY + 20);
+
+  // ========== LIGHTING ANALYSIS ==========
+  const analysisX = imgX + 3 * (gridSize + gridGap) + 40;
+  const analysisY = curY;
+  ctx.fillStyle = ink;
+  ctx.font = `bold 15px ${FONT_FAMILY}`;
+  ctx.fillText('LIGHTING ANALYSIS · 光影判断', analysisX, analysisY);
+
+  // 分析文字（自动换行）
+  ctx.fillStyle = inkSecondary;
+  ctx.font = `14px ${FONT_FAMILY}`;
+  const maxLineW = imgMaxW - (analysisX - imgX);
+  const analysisLines = wrapText(ctx, luma.analysisText, maxLineW);
+  analysisLines.forEach((line, i) => {
+    ctx.fillText(line, analysisX, analysisY + 30 + i * 22);
+  });
+
+  // 底部统计行
+  const statsY = gridStatsY + 60;
+  ctx.fillStyle = inkSecondary;
+  ctx.font = `14px ${FONT_FAMILY}`;
+  const statsText = `平均亮度 ${luma.avgBrightness}%  |  暗部占比 ${luma.darkRatio}%  |  亮部占比 ${luma.brightRatio}%  |  平均彩度 ${luma.avgSaturation}%`;
+  ctx.fillText(statsText, imgX, statsY);
+
+  // ========== 右栏：标题 + 六阶色卡 ==========
+  const rightX = 1210;
+  const rightW = W - rightX - 40;
+
+  // 作品名
+  const title = titleText ?? path.basename(sourcePath, path.extname(sourcePath));
+  ctx.fillStyle = ink;
+  ctx.font = `bold 32px ${FONT_FAMILY}`;
+  ctx.fillText(`《${title}》`, rightX, 70);
+
+  // 时段分类
+  ctx.fillStyle = inkSecondary;
+  ctx.font = `15px ${FONT_FAMILY}`;
+  ctx.fillText(`时段分类：${luma.timeCategory}`, rightX, 115);
+
+  // 色卡标题
+  ctx.fillStyle = ink;
+  ctx.font = `bold 16px ${FONT_FAMILY}`;
+  ctx.fillText('COLOR PALETTE · 六阶色卡', rightX, 160);
+
+  // 六阶色卡列表
+  const swatchStartY = 190;
+  const swatchH = 42;
+  const swatchGap = 58;
+
+  sixColors.forEach((color, i) => {
+    const y0 = swatchStartY + i * (swatchH + swatchGap);
+    const name = CINEMATIC_COLOR_NAMES[i] || `色阶 ${i + 1}`;
+    const hex = color.hex;
+    const rgbText = `RGB ${color.rgb.r},${color.rgb.g},${color.rgb.b} · 占比 ${(color.ratio * 100).toFixed(1)}%`;
+
+    // 色块
+    ctx.fillStyle = hex;
+    if (typeof ctx.roundRect === 'function') {
+      ctx.beginPath();
+      ctx.roundRect(rightX, y0, rightW, swatchH, 4);
+      ctx.fill();
+    } else {
+      ctx.fillRect(rightX, y0, rightW, swatchH);
+    }
+
+    // 编号 + 名称（左）
+    ctx.fillStyle = ink;
+    ctx.font = `bold 15px ${FONT_FAMILY}`;
+    ctx.fillText(`${String(i + 1).padStart(2, '0')} ${name}`, rightX, y0 + swatchH + 8);
+
+    // HEX（右）
+    ctx.textAlign = 'right';
+    ctx.font = `bold 16px ${FONT_FAMILY}`;
+    ctx.fillText(hex, rightX + rightW, y0 + swatchH + 8);
+    ctx.textAlign = 'left';
+
+    // RGB + 占比
+    ctx.fillStyle = inkSecondary;
+    ctx.font = `13px ${FONT_FAMILY}`;
+    ctx.fillText(rgbText, rightX, y0 + swatchH + 30);
+  });
+
+  // ========== 底部 Footer ==========
+  ctx.fillStyle = inkSecondary;
+  ctx.font = `13px ${FONT_FAMILY}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('RESEARCH & DEVELOPMENT · HuePick  |  CODE:LIN', W - 40, H - 30);
+  ctx.textAlign = 'left';
+
+  // 保存
+  const outDir = path.dirname(outputPath);
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
+  if (outputFormat === 'png') {
+    await canvas.toFile(outputPath, { format: 'png' });
+  } else {
+    await canvas.toFile(outputPath, { format: 'jpeg', quality: 0.92 });
+  }
+
+  return {
+    sourcePath,
+    outputPath,
+    success: true,
+    colors: sixColors,
+  };
+}
+
+/** Canvas 文字自动换行 */
+function wrapText(ctx: any, text: string, maxWidth: number): string[] {
+  const lines: string[] = [];
+  let currentLine = '';
+  for (const char of text) {
+    const testLine = currentLine + char;
+    if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine);
+      currentLine = char;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
 }

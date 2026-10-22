@@ -143,6 +143,9 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
       if (preset) { w = preset.width; h = preset.height; }
     }
 
+    // 影视分析模板固定6色
+    const effectiveNumColors = template === 'cinematic' ? 6 : numColors;
+
     // 2. 主题背景色
     const bg = theme === 'light'
       ? { r: 245, g: 245, b: 247 }
@@ -167,7 +170,7 @@ ipcMain.handle('generate-card', async (_evt, payload) => {
 
     // 4. 生成色卡
     const result = await generateCard(sourcePath, {
-      numColors,
+      numColors: effectiveNumColors,
       cropBars,
       cardWidth: w,
       cardHeight: h,

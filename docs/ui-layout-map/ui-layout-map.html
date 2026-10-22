@@ -1,10 +1,10 @@
-<!-- HuePick · 界面编号视觉图鉴 · v1.2.0 -->
+<!-- HuePick · 界面编号视觉图鉴 · v1.3.0 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HuePick · 界面编号视觉图鉴（v1.2.0）</title>
+<title>HuePick · 界面编号视觉图鉴（v1.3.0）</title>
 <style>
 :root{
   --bg:#0F0F0F; --bg2:#1A1A1A; --bg3:#161616;
@@ -56,8 +56,8 @@ code{font-family:var(--mono);background:var(--bg3);padding:.1rem .4rem;border-ra
 <body>
 <div class="wrap">
 
-<h1>HuePick · 界面编号视觉图鉴<small>v1.2.0 · 2026-10-22 · 界面重构后</small></h1>
-<p class="lead">本文档描述 HuePick v1.2.0 的界面结构与编号规则。所有区域 ID 在代码（HTML / CSS / JS）中一一对应，可作为修改 UI 时的定位锚点。点击图鉴中任意编号芯片，下方状态栏会显示完整说明。</p>
+<h1>HuePick · 界面编号视觉图鉴<small>v1.3.0 · 2026-10-22 · 影视分析模板</small></h1>
+<p class="lead">本文档描述 HuePick v1.3.0 的界面结构与编号规则。所有区域 ID 在代码（HTML / CSS / JS）中一一对应，可作为修改 UI 时的定位锚点。点击图鉴中任意编号芯片，下方状态栏会显示完整说明。</p>
 
 <ol class="toc">
   <li><a href="#s0">§0 编号规则</a></li>
@@ -144,10 +144,10 @@ code{font-family:var(--mono);background:var(--bg3);padding:.1rem .4rem;border-ra
     <tr data-t="C1-03"><td class="num">C1-03</td><td><code>.file-list</code></td><td>flex:1 占满剩余</td><td>文件列表：支持 Windows 选择逻辑</td></tr>
     <tr data-t="C1-04"><td class="num">C1-04</td><td><code>.clear-btn</code></td><td>高 36px, margin 10px 12px 12px</td><td>清除按钮：智能切换「清空列表」/「删除选中 (N)」</td></tr>
     <tr data-t="C2"><td class="num">C2</td><td><code>.panel.right</code></td><td>grid 第二列 1fr</td><td>右栏：参数 + 预览 + 日志</td></tr>
-    <tr data-t="C2-R1"><td class="num">C2-R1</td><td><code>.params</code></td><td>padding 22px 26px</td><td>参数面板：色数/模板/主题/裁切/格式 + 生成按钮</td></tr>
+    <tr data-t="C2-R1"><td class="num">C2-R1</td><td><code>.params</code></td><td>padding 22px 26px</td><td>参数面板：色数/模板（默认「影视分析 1920×1080」）/裁切/格式 + 生成按钮</td></tr>
     <tr data-t="C2-R2"><td class="num">C2-R2</td><td><code>.preview</code></td><td>flex:1 占满剩余</td><td>预览区：参数变化 350ms 防抖自动刷新</td></tr>
     <tr data-t="C2-R3"><td class="num">C2-R3</td><td><code>.log</code></td><td>高 100px</td><td>日志面板：等宽字体，三档颜色（ok/err/info）</td></tr>
-    <tr data-t="SB"><td class="num">SB</td><td><code>.statusbar</code></td><td>高 28px, flex-shrink:0</td><td>底栏：版本号 + 状态文字</td></tr>
+    <tr data-t="SB"><td class="num">SB</td><td><code>.statusbar</code></td><td>高 28px, flex-shrink:0</td><td>底栏：版本号 + 状态文字 + 预览缓存清理</td></tr>
   </tbody>
 </table>
 </div>
@@ -310,18 +310,20 @@ code{font-family:var(--mono);background:var(--bg3);padding:.1rem .4rem;border-ra
 </div>
 
 <h2 id="s4"><span class="no">§4</span>底栏 SB</h2>
-<p class="lead">v1.2.0 新增底栏，替代原顶栏的「版本号」功能，并扩展实时状态提示。</p>
+<p class="lead">v1.2.0 新增底栏，替代原顶栏的「版本号」功能，并扩展实时状态提示；v1.2.1 起右下角新增预览缓存清理按钮。</p>
 
 <figure>
 <svg viewBox="0 0 800 60" xmlns="http://www.w3.org/2000/svg">
   <rect x="10" y="5" width="780" height="50" fill="#141418" stroke="#2a2a30" rx="4"/>
 
-  <text x="30" y="35" font-family="Consolas, monospace" font-size="13" fill="#b0b0b5" font-weight="500">v1.2.0</text>
+  <text x="30" y="35" font-family="Consolas, monospace" font-size="13" fill="#b0b0b5" font-weight="500">v1.3.0</text>
   <text x="100" y="35" font-size="13" fill="#3a3a40">·</text>
   <text x="50" y="35" font-size="13" fill="#8e8e93">已选中 2 / 5 张</text>
+  <text x="700" y="35" font-size="12" fill="#8e8e93">🗑 缓存 12.4 MB</text>
 
   <g class="chip" data-t="SB-ver" style="--z:var(--z-status)"><rect x="22" y="14" width="50" height="20" rx="4"/><text x="47" y="24">ver</text></g>
   <g class="chip" data-t="SB-text" style="--z:var(--z-status)"><rect x="40" y="14" width="60" height="20" rx="4"/><text x="70" y="24">text</text></g>
+  <g class="chip" data-t="SB-cache" style="--z:var(--z-status)"><rect x="660" y="14" width="70" height="20" rx="4"/><text x="695" y="24">cache</text></g>
 </svg>
 <figcaption>图 4-1 · 底栏布局</figcaption>
 </figure>
@@ -332,6 +334,7 @@ code{font-family:var(--mono);background:var(--bg3);padding:.1rem .4rem;border-ra
   <tbody>
     <tr data-t="SB-ver"><td class="num">SB-ver</td><td><code>#ver</code></td><td>版本号，DOMContentLoaded 时通过 <code>huepick.getVersion()</code> 从主进程 IPC 拉取（单一来源 package.json）</td></tr>
     <tr data-t="SB-text"><td class="num">SB-text</td><td><code>#status-text</code></td><td>实时状态：就绪 / 共 N 张 / 已选中 M/N / 正在生成 (k/N) / 已生成 N 张</td></tr>
+    <tr data-t="SB-cache"><td class="num">SB-cache</td><td><code>#btn-clear-cache</code></td><td>右下角垃圾桶按钮 + 缓存体积：统计并清理 <code>%TEMP%\HuePick-preview</code> 预览缓存，缓存为空时提示无需清理</td></tr>
   </tbody>
 </table>
 </div>
