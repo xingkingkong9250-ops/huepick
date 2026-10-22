@@ -265,6 +265,11 @@ dropEl.addEventListener('click', async () => {
   const paths = await window.huepick.pickFiles();
   if (paths && paths.length > 0) addPaths(paths);
 });
+$('#link-select').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const paths = await window.huepick.pickFiles();
+  if (paths && paths.length > 0) addPaths(paths);
+});
 $('#link-folder').addEventListener('click', async (e) => {
   e.stopPropagation();
   const result = await window.huepick.pickFolder();

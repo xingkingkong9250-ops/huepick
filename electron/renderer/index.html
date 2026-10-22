@@ -23,7 +23,7 @@
         <div class="drop-inner">
           <div class="drop-icon">⬇</div>
           <div class="drop-hint">拖拽图片或文件夹到此处</div>
-          <div class="drop-hint-sm">单击选择图片 · <span class="link" id="link-folder">选择文件夹</span></div>
+          <div class="drop-hint-sm"><span class="link" id="link-select">选择图片</span> · <span class="link" id="link-folder">选择文件夹</span></div>
           <div class="drop-hint-xs">支持 PNG / JPG / WEBP / BMP / TIFF</div>
         </div>
       </div>
@@ -55,17 +55,8 @@
             <option value="palette">色板 1200×240</option>
           </select>
         </div>
-        <div class="param-row">
-          <label>主题</label>
-          <select id="p-theme">
-            <option value="dark" selected>深色</option>
-            <option value="light">浅色</option>
-          </select>
-        </div>
-        <div class="param-row">
-          <label>裁切</label>
-          <input type="checkbox" id="p-crop" checked />
-        </div>
+        <!-- theme hidden, functionality preserved via JS -->
+        <input type="hidden" id="p-theme" value="dark" />
         <div class="param-row">
           <label>格式</label>
           <select id="p-format">
@@ -73,9 +64,12 @@
             <option value="png">PNG（无损）</option>
           </select>
         </div>
-        <button id="btn-generate" class="primary">
-          <span id="gen-text">🚀 生成色卡</span>
-        </button>
+        <div class="param-row param-crop">
+          <label>裁切图片多于黑边</label>
+          <input type="checkbox" id="p-crop" checked />
+        </div>
+        <div class="param-spacer"></div>
+        <button id="btn-generate" class="primary">生成色卡</button>
       </div>
 
       <div class="preview" id="preview">
@@ -91,8 +85,7 @@
 
   <!-- 底边栏：版本 + 状态提示 -->
   <footer class="statusbar">
-    <span class="status-ver" id="ver">v1.1.0</span>
-    <span class="status-sep">·</span>
+    <span class="status-ver" id="ver">v1.2.0</span>
     <span class="status-text" id="status-text">就绪</span>
   </footer>
 
