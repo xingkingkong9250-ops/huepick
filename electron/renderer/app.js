@@ -237,6 +237,16 @@ listEl.addEventListener('keydown', (e) => {
   }
 });
 
+// ============ 点击列表外空白 → 清空选中 ============
+document.addEventListener('mousedown', (e) => {
+  if (e.target.closest('#file-list') || e.target.closest('.clear-btn') || e.target.closest('.dropzone')) return;
+  if (state.selected.size === 0) return;
+  state.selected.clear();
+  state.lastClickedIdx = -1;
+  renderList();
+  updateStatusBar();
+});
+
 // ============ 拖拽（统一 document 接收，#drop 仅视觉提示） ============
 const dropEl = $('#drop');
 
