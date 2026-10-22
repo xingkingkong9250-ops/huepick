@@ -31,6 +31,18 @@ export interface GridCell {
 export interface LumaAnalysis {
   /** 九宫格亮度百分比（左上→右下，0~100 整数） */
   grid: number[][];
+  /** 九宫格各区域平均色（用于色块填充） */
+  gridColors: RGB[][];
+  /** 三行平均亮度（上/中/下） */
+  rowAvgs: number[];
+  /** 最亮格位置文字（如「右上」） */
+  maxPos: string;
+  /** 最暗格位置文字 */
+  minPos: string;
+  /** 纵向明暗趋势描述（如「上亮下暗」） */
+  verticalDesc: string;
+  /** 分区极差描述（如「强光比（逆光/剪影特征）」） */
+  rangeDesc: string;
   /** 平均亮度（0~100） */
   avgBrightness: number;
   /** 暗部占比（0~100，亮度 < 85 的像素占比） */
@@ -66,6 +78,10 @@ export function analyzeLuma(data: Buffer, width: number, height: number): LumaAn
   // 九宫格累加器
   const gridSums: number[][] = [ [0,0,0], [0,0,0], [0,0,0] ];
   const gridCounts: number[][] = [ [0,0,0], [0,0,0], [0,0,0] ];
+  // 九宫格 RGB 累加器（用于区域平均色）
+  const gridR: number[][] = [ [0,0,0], [0,0,0], [0,0,0] ];
+  const gridG: number[][] = [ [0,0,0], [0,0,0], [0,0,0] ];
+  const gridB: number[][] = [ [0,0,0], [0,0,0], [0,0,0] ];
 
   let totalLum = 0;
   let totalSat = 0;
@@ -97,6 +113,11 @@ export function analyzeLuma(data: Buffer, width: number, height: number): LumaAn
     const gy = Math.min(2, Math.floor(y / (height / 3)));
     gridSums[gy][gx] += lum;
     gridCounts[gy][gx]++;
+
+    // 区域 RGB 累加（用于九宫格填充色）
+    gridR[gy][gx] += r;
+    gridG[gy][gx] += g;
+    gridB[gy][gx] += b;
   }
 
   // 九宫格百分比（相对全图最大亮度格）
@@ -115,6 +136,51 @@ export function analyzeLuma(data: Buffer, width: number, height: number): LumaAn
   const rowAvgs = [0, 1, 2].map(r => Math.round((gridAvgs[r][0] + gridAvgs[r][1] + gridAvgs[r][2]) / 3));
   const verticalRange = Math.max(...rowAvgs) - Math.min(...rowAvgs);
 
+  // 九宫格区域平均色
+  const gridColors: RGB[][] = [ [0,0,0], [0,0,0], [0,0,0] ].map(() => [
+    { r: 0, g: 0, b: 0 }, { r: 0, g: 0, b: 0 }, { r: 0, g: 0, b: 0 },
+  ]);
+  for (let gy = 0; gy < 3; gy++) {
+    for (let gx = 0; gx < 3; gx++) {
+      const c = gridCounts[gy][gx];
+      gridColors[gy][gx] = c > 0
+        ? {
+            r: Math.round(gridR[gy][gx] / c),
+            g: Math.round(gridG[gy][gx] / c),
+            b: Math.round(gridB[gy][gx] / c),
+          }
+        : { r: 0, g: 0, b: 0 };
+    }
+  }
+
+  // 最亮/最暗格位置
+  const POS_Y = ['上', '中', '下'];
+  const POS_X = ['左', '中', '右'];
+  let maxGy = 0, maxGx = 0, minGy = 0, minGx = 0;
+  for (let gy = 0; gy < 3; gy++) {
+    for (let gx = 0; gx < 3; gx++) {
+      if (gridAvgs[gy][gx] > gridAvgs[maxGy][maxGx]) { maxGy = gy; maxGx = gx; }
+      if (gridAvgs[gy][gx] < gridAvgs[minGy][minGx]) { minGy = gy; minGx = gx; }
+    }
+  }
+  const maxPos = `${POS_Y[maxGy]}${POS_X[maxGx]}`;
+  const minPos = `${POS_Y[minGy]}${POS_X[minGx]}`;
+
+  // 纵向明暗趋势
+  const topAvg = rowAvgs[0], bottomAvg = rowAvgs[2];
+  const verticalDesc = topAvg - bottomAvg > 8
+    ? '上亮下暗（顶光/逆光特征）'
+    : bottomAvg - topAvg > 8
+      ? '上暗下亮（地光/低调环境）'
+      : '上下均衡（漫射光环境）';
+
+  // 分区极差描述
+  const rangeDesc = verticalRange > 40
+    ? '强光比（逆光/剪影特征）'
+    : verticalRange > 20
+      ? '中等光比（立体感自然）'
+      : '弱光比（平光/柔光）';
+
   const avgBrightness = sampleCount > 0 ? Math.round((totalLum / sampleCount / 255) * 100) : 0;
   const avgSat = sampleCount > 0 ? Math.round((totalSat / sampleCount) * 100) : 0;
   const darkRatio = sampleCount > 0 ? Math.round((darkCount / sampleCount) * 100) : 0;
@@ -129,6 +195,12 @@ export function analyzeLuma(data: Buffer, width: number, height: number): LumaAn
 
   return {
     grid: gridAvgs,
+    gridColors,
+    rowAvgs,
+    maxPos,
+    minPos,
+    verticalDesc,
+    rangeDesc,
     avgBrightness,
     darkRatio,
     midRatio,

@@ -104,16 +104,20 @@ export function cropBlackBars(
 
 /**
  * 用 sharp 将 RGB Buffer 转为指定尺寸的缩略图 PNG Buffer
+ * @param fit inside=完整显示（默认，可能留边）；cover=居中裁满（不改变目标框尺寸）
  */
 export async function rgbToThumbnail(
   rgbData: Buffer,
   width: number,
   height: number,
   maxWidth: number,
-  maxHeight: number
+  maxHeight: number,
+  fit: 'inside' | 'cover' = 'inside'
 ): Promise<Buffer> {
   return sharp(rgbData, { raw: { width, height, channels: 3 } })
-    .resize(maxWidth, maxHeight, { fit: 'inside', withoutEnlargement: true })
+    .resize(maxWidth, maxHeight, fit === 'cover'
+      ? { fit: 'cover', position: 'centre' }
+      : { fit: 'inside', withoutEnlargement: true })
     .png()
     .toBuffer();
 }

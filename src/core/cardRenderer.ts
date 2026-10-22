@@ -350,8 +350,9 @@ const CINEMATIC_COLOR_NAMES = [
 
 /**
  * 渲染影视分析色卡（1920×1080 固定）
- * 布局：左侧大图 + 九宫格亮度分析 + 光影判断文字
- *       右侧标题 + 六阶色卡列表
+ * 布局严格对齐参考图实测坐标：
+ *   左栏  x 72..1313：照片 1241×621 + 图注 + 九宫格 + 光影判断
+ *   右栏  x 1508..1848（宽 340）：抬头 + 标题 + 时段 + 六阶色卡
  */
 async function renderCinematicCard(
   sourcePath: string,
@@ -362,6 +363,14 @@ async function renderCinematicCard(
   const { outputPath, outputFormat = 'jpg', titleText } = options;
   const W = 1920, H = 1080;
 
+  // 实测配色
+  const BG = '#B2B2B2';
+  const FRAME = '#7C7E83';
+  const INK = '#181A1F';
+  const INK2 = '#34363C';
+  const INK3 = '#44464C';
+  const BLUE = '#123296';
+
   // 光影分析
   const luma = analyzeLuma(work.data, work.width, work.height);
 
@@ -371,7 +380,6 @@ async function renderCinematicCard(
     const lumB = 0.299 * b.rgb.r + 0.587 * b.rgb.g + 0.114 * b.rgb.b;
     return lumA - lumB;
   });
-  // 补足6色（若提取不足则插值复制）
   while (sortedColors.length < 6 && sortedColors.length > 0) {
     sortedColors.push({ ...sortedColors[sortedColors.length - 1] });
   }
@@ -380,164 +388,186 @@ async function renderCinematicCard(
   const canvas = new Canvas(W, H);
   const ctx = canvas.getContext('2d');
 
-  // 背景：浅灰
-  ctx.fillStyle = '#E8E8E8';
+  // 背景 + 外框
+  ctx.fillStyle = BG;
   ctx.fillRect(0, 0, W, H);
-
-  const ink = '#1A1A1A';
-  const inkSecondary = '#555555';
-  const accentBlue = '#4A90D9';
-
-  // ========== 顶部标题栏 ==========
-  ctx.fillStyle = accentBlue;
-  ctx.font = `bold 22px ${FONT_FAMILY}`;
+  ctx.strokeStyle = FRAME;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(5, 5, W - 10, H - 10);
   ctx.textBaseline = 'top';
-  ctx.textAlign = 'right';
-  ctx.fillText('COLOR PALETTE ANALYSIS · 光影时段色卡', W - 40, 25);
   ctx.textAlign = 'left';
 
-  // ========== 左栏：大图 ==========
-  const imgX = 40, imgY = 70;
-  const imgMaxW = 1120, imgMaxH = 500;
-  const thumbBuffer = await rgbToThumbnail(work.data, work.width, work.height, imgMaxW, imgMaxH);
+  // ========== 右上抬头（右对齐 1848，字号 24） ==========
+  const headBlue = 'COLOR PALETTE ANALYSIS';
+  const headGray = ' · 光影时段色卡';
+  ctx.font = `bold 24px ${FONT_FAMILY}`;
+  const hw1 = ctx.measureText(headBlue).width;
+  const hw2 = ctx.measureText(headGray).width;
+  const headX = 1848 - hw1 - hw2;
+  ctx.fillStyle = BLUE;
+  ctx.fillText(headBlue, headX, 56);
+  ctx.fillStyle = INK2;
+  ctx.fillText(headGray, headX + hw1, 56);
+
+  // ========== 左栏：照片 1241×621 @ (72,118) ==========
+  const imgBoxX = 72, imgBoxY = 118, imgBoxW = 1241, imgBoxH = 621;
+  const thumbBuffer = await rgbToThumbnail(work.data, work.width, work.height, imgBoxW, imgBoxH, 'cover');
   const thumbImage = await loadImage(thumbBuffer);
-  // 居中放置
-  const drawX = imgX + Math.floor((imgMaxW - thumbImage.width) / 2);
-  const drawY = imgY + Math.floor((imgMaxH - thumbImage.height) / 2);
-  ctx.drawImage(thumbImage, drawX, drawY, thumbImage.width, thumbImage.height);
+  ctx.drawImage(thumbImage, imgBoxX, imgBoxY, imgBoxW, imgBoxH);
 
-  // 图片下方信息
-  let curY = imgY + imgMaxH + 20;
-  ctx.fillStyle = inkSecondary;
+  // 图注（ink y 766，字号 14）
+  ctx.fillStyle = INK2;
   ctx.font = `14px ${FONT_FAMILY}`;
-  ctx.fillText(`CINEMATIC SOURCE FRAME · Resolution ${work.width}×${work.height} · Rec.709 Standard`, imgX, curY);
+  ctx.fillText(
+    `CINEMATIC SOURCE FRAME · Resolution ${work.width}×${work.height} · Rec.709 Standard`,
+    72, 762,
+  );
 
-  // ========== LUMA GRID 九宫格 ==========
-  curY += 30;
-  ctx.fillStyle = ink;
-  ctx.font = `bold 15px ${FONT_FAMILY}`;
-  ctx.fillText('LUMA GRID · 九宫格亮度分布', imgX, curY);
+  // ========== LUMA GRID 标签（x72, ink y 806，字号 15） ==========
+  const drawTwoTone = (x: number, y: number, blue: string, gray: string, font: string) => {
+    ctx.font = font;
+    ctx.fillStyle = BLUE;
+    ctx.fillText(blue, x, y);
+    const w1 = ctx.measureText(blue).width;
+    ctx.fillStyle = INK2;
+    ctx.fillText(gray, x + w1, y);
+  };
+  drawTwoTone(72, 802, 'LUMA GRID', ' · 九宫格亮度分布', `bold 15px ${FONT_FAMILY}`);
 
-  const gridSize = 55, gridGap = 6;
-  const gridStartX = imgX;
-  const gridStartY = curY + 25;
-
+  // 九宫格：x0=72, y0=826, 单元 110×40, gapX=6, gapY=5
+  const cellW = 110, cellH = 40, gapX = 6, gapY = 5;
+  const gridX = 72, gridY = 826;
   for (let gy = 0; gy < 3; gy++) {
     for (let gx = 0; gx < 3; gx++) {
       const val = luma.grid[gy][gx];
-      const cx = gridStartX + gx * (gridSize + gridGap);
-      const cy = gridStartY + gy * (gridSize + gridGap);
+      const c = luma.gridColors[gy][gx];
+      const cx = gridX + gx * (cellW + gapX);
+      const cy = gridY + gy * (cellH + gapY);
 
-      // 根据亮度值着色：暗→深灰，亮→浅灰
-      const shade = Math.round(255 - (val / 100) * 200);
-      ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
-      ctx.fillRect(cx, cy, gridSize, gridSize);
+      // 区域平均色填充
+      ctx.fillStyle = rgbCss(c);
+      ctx.fillRect(cx, cy, cellW, cellH);
 
-      // 数值
-      ctx.fillStyle = val > 50 ? '#1A1A1A' : '#FFFFFF';
-      ctx.font = `bold 16px ${FONT_FAMILY}`;
+      // 白色粗体数字（居中）
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold 22px ${FONT_FAMILY}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`${val}%`, cx + gridSize / 2, cy + gridSize / 2);
+      ctx.fillText(String(val), cx + cellW / 2, cy + cellH / 2 + 1);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
     }
   }
 
-  // 九宫格统计文字
-  const gridStatsY = gridStartY + 3 * (gridSize + gridGap) + 15;
-  ctx.fillStyle = inkSecondary;
-  ctx.font = `13px ${FONT_FAMILY}`;
-  const rowAvgs = [0, 1, 2].map(r => Math.round((luma.grid[r][0] + luma.grid[r][1] + luma.grid[r][2]) / 3));
-  ctx.fillText(`纵向 ${rowAvgs[0]} → ${rowAvgs[1]} → ${rowAvgs[2]}  最亮 ${luma.gridMax}%  最暗 ${luma.gridMin}%`, imgX, gridStatsY);
-  ctx.fillText(`分区极差 ${luma.verticalRange}%`, imgX, gridStatsY + 20);
-
-  // ========== LIGHTING ANALYSIS ==========
-  const analysisX = imgX + 3 * (gridSize + gridGap) + 40;
-  const analysisY = curY;
-  ctx.fillStyle = ink;
-  ctx.font = `bold 15px ${FONT_FAMILY}`;
-  ctx.fillText('LIGHTING ANALYSIS · 光影判断', analysisX, analysisY);
-
-  // 分析文字（自动换行）
-  ctx.fillStyle = inkSecondary;
+  // 九宫格说明 3 行（ink y 972/996/1020，字号 14，行距 24）
+  ctx.fillStyle = INK2;
   ctx.font = `14px ${FONT_FAMILY}`;
-  const maxLineW = imgMaxW - (analysisX - imgX);
-  const analysisLines = wrapText(ctx, luma.analysisText, maxLineW);
-  analysisLines.forEach((line, i) => {
-    ctx.fillText(line, analysisX, analysisY + 30 + i * 22);
+  const gridDesc = [
+    `纵向亮度 ${luma.rowAvgs[0]} → ${luma.rowAvgs[1]} → ${luma.rowAvgs[2]}`,
+    `最亮 ${luma.gridMax}% · ${luma.maxPos}      最暗 ${luma.gridMin}% · ${luma.minPos}      分区极差 ${luma.verticalRange}%`,
+    luma.verticalDesc,
+  ];
+  gridDesc.forEach((line, i) => {
+    ctx.fillText(line, 72, 968 + i * 24);
   });
 
-  // 底部统计行
-  const statsY = gridStatsY + 60;
-  ctx.fillStyle = inkSecondary;
+  // ========== LIGHTING ANALYSIS（x478，标签 y806，正文 22px 行距 36） ==========
+  const anaX = 478;
+  drawTwoTone(anaX, 802, 'LIGHTING ANALYSIS', ' · 光影判断', `bold 15px ${FONT_FAMILY}`);
+
+  ctx.fillStyle = '#1E2026';
+  ctx.font = `22px ${FONT_FAMILY}`;
+  const anaLines = wrapText(ctx, luma.analysisText, 852);
+  anaLines.forEach((line, i) => {
+    ctx.fillText(line, anaX, 842 + i * 36);
+  });
+
+  // 统计行（ink y 930，字号 14）
+  ctx.fillStyle = INK2;
   ctx.font = `14px ${FONT_FAMILY}`;
-  const statsText = `平均亮度 ${luma.avgBrightness}%  |  暗部占比 ${luma.darkRatio}%  |  亮部占比 ${luma.brightRatio}%  |  平均彩度 ${luma.avgSaturation}%`;
-  ctx.fillText(statsText, imgX, statsY);
+  ctx.fillText(
+    `平均亮度 ${luma.avgBrightness}%    暗部 ${luma.darkRatio}%    中间调 ${luma.midRatio}%    亮部 ${luma.brightRatio}%    彩度 ${luma.avgSaturation}%`,
+    anaX, 926,
+  );
 
-  // ========== 右栏：标题 + 六阶色卡 ==========
-  const rightX = 1210;
-  const rightW = W - rightX - 40;
+  // ========== 右栏：标题 + 时段 + 六阶色卡 ==========
+  const rightX = 1508;
+  const rightW = 340;
+  const rightEnd = rightX + rightW;
 
-  // 作品名
+  // 作品名（ink y 115，字号 42，超宽自动缩字）
   const title = titleText ?? path.basename(sourcePath, path.extname(sourcePath));
-  ctx.fillStyle = ink;
-  ctx.font = `bold 32px ${FONT_FAMILY}`;
-  ctx.fillText(`《${title}》`, rightX, 70);
+  const titleStr = `《${title}》`;
+  let titleSize = 42;
+  ctx.font = `bold ${titleSize}px ${FONT_FAMILY}`;
+  while (titleSize > 24 && ctx.measureText(titleStr).width > rightW) {
+    titleSize -= 2;
+    ctx.font = `bold ${titleSize}px ${FONT_FAMILY}`;
+  }
+  ctx.fillStyle = INK;
+  ctx.fillText(titleStr, rightX, 112);
 
-  // 时段分类
-  ctx.fillStyle = inkSecondary;
-  ctx.font = `15px ${FONT_FAMILY}`;
-  ctx.fillText(`时段分类：${luma.timeCategory}`, rightX, 115);
+  // 时段分类（ink y 174，字号 20）
+  ctx.fillStyle = INK2;
+  ctx.font = `20px ${FONT_FAMILY}`;
+  ctx.fillText(`时段分类：${luma.timeCategory}`, rightX, 170);
 
-  // 色卡标题
-  ctx.fillStyle = ink;
-  ctx.font = `bold 16px ${FONT_FAMILY}`;
-  ctx.fillText('COLOR PALETTE · 六阶色卡', rightX, 160);
+  // 分隔线（y 208）
+  ctx.strokeStyle = FRAME;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(rightX, 208.5);
+  ctx.lineTo(rightEnd, 208.5);
+  ctx.stroke();
 
-  // 六阶色卡列表
-  const swatchStartY = 190;
-  const swatchH = 42;
-  const swatchGap = 58;
+  // COLOR PALETTE 标签（ink y 228，字号 15）
+  drawTwoTone(rightX, 224, 'COLOR PALETTE', ' · 六阶色卡', `bold 15px ${FONT_FAMILY}`);
+
+  // 六阶色卡：色块 340×52，起点 y 256，步距 112，圆角 8
+  const swY0 = 256;
+  const swH = 52;
+  const swPitch = 112;
 
   sixColors.forEach((color, i) => {
-    const y0 = swatchStartY + i * (swatchH + swatchGap);
+    const y0 = swY0 + i * swPitch;
     const name = CINEMATIC_COLOR_NAMES[i] || `色阶 ${i + 1}`;
-    const hex = color.hex;
-    const rgbText = `RGB ${color.rgb.r},${color.rgb.g},${color.rgb.b} · 占比 ${(color.ratio * 100).toFixed(1)}%`;
 
     // 色块
-    ctx.fillStyle = hex;
+    ctx.fillStyle = color.hex;
     if (typeof ctx.roundRect === 'function') {
       ctx.beginPath();
-      ctx.roundRect(rightX, y0, rightW, swatchH, 4);
+      ctx.roundRect(rightX, y0, rightW, swH, 8);
       ctx.fill();
     } else {
-      ctx.fillRect(rightX, y0, rightW, swatchH);
+      ctx.fillRect(rightX, y0, rightW, swH);
     }
 
-    // 编号 + 名称（左）
-    ctx.fillStyle = ink;
-    ctx.font = `bold 15px ${FONT_FAMILY}`;
-    ctx.fillText(`${String(i + 1).padStart(2, '0')} ${name}`, rightX, y0 + swatchH + 8);
+    // 名称（左，字号 17 粗体）
+    ctx.fillStyle = INK2;
+    ctx.font = `bold 17px ${FONT_FAMILY}`;
+    ctx.fillText(`${String(i + 1).padStart(2, '0')}  ${name}`, rightX, y0 + swH + 5);
 
-    // HEX（右）
+    // HEX（右对齐，字号 20 粗体）
     ctx.textAlign = 'right';
-    ctx.font = `bold 16px ${FONT_FAMILY}`;
-    ctx.fillText(hex, rightX + rightW, y0 + swatchH + 8);
+    ctx.fillStyle = INK;
+    ctx.font = `bold 20px ${FONT_FAMILY}`;
+    ctx.fillText(color.hex, rightEnd, y0 + swH + 3);
     ctx.textAlign = 'left';
 
-    // RGB + 占比
-    ctx.fillStyle = inkSecondary;
-    ctx.font = `13px ${FONT_FAMILY}`;
-    ctx.fillText(rgbText, rightX, y0 + swatchH + 30);
+    // RGB + 占比（字号 14）
+    ctx.fillStyle = INK3;
+    ctx.font = `14px ${FONT_FAMILY}`;
+    ctx.fillText(
+      `R ${color.rgb.r}  G ${color.rgb.g}  B ${color.rgb.b}    占比 ${(color.ratio * 100).toFixed(1)}%`,
+      rightX, y0 + swH + 27,
+    );
   });
 
-  // ========== 底部 Footer ==========
-  ctx.fillStyle = inkSecondary;
-  ctx.font = `13px ${FONT_FAMILY}`;
+  // ========== 页脚（右对齐 1846，ink y 1033，字号 14） ==========
+  ctx.fillStyle = INK3;
+  ctx.font = `14px ${FONT_FAMILY}`;
   ctx.textAlign = 'right';
-  ctx.fillText('RESEARCH & DEVELOPMENT · HuePick  |  CODE:LIN', W - 40, H - 30);
+  ctx.fillText('RESEARCH & DEVELOPMENT · HuePick  |  CODE:LIN', 1846, 1029);
   ctx.textAlign = 'left';
 
   // 保存

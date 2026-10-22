@@ -32,7 +32,7 @@ if ($existing) {
 $hasNode = $false
 try {
     $nodeVer = (node --version 2>$null)
-    if ($node -match '^v(\d+)') {
+    if ($nodeVer -match '^v(\d+)') {
         $major = [int]$Matches[1]
         if ($major -ge 18) { $hasNode = $true; Write-Log "Node.js $nodeVer" }
     }
@@ -50,9 +50,26 @@ try {
     Write-Log '读取 package.json 失败' 'WARN'
 }
 
-# 4. 启动
+# 4. 启动：打包版仅在「不比源码旧」时使用，否则回落到 dev 模式保证测到最新代码
 $packedExe = Join-Path $ProjectRoot 'dist\win-unpacked\HuePick.exe'
-if (Test-Path $packedExe) {
+$packedAsar = Join-Path $ProjectRoot 'dist\win-unpacked\resources\app.asar'
+$usePacked = (Test-Path $packedExe) -and (Test-Path $packedAsar)
+
+if ($usePacked) {
+    $asarTime = (Get-Item $packedAsar).LastWriteTime
+    $newerSource = Get-ChildItem @(
+        (Join-Path $ProjectRoot 'src'),
+        (Join-Path $ProjectRoot 'electron')
+    ) -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -gt $asarTime } |
+        Select-Object -First 1
+    if ($newerSource) {
+        $usePacked = $false
+        Write-Log "源码（$($newerSource.Name)）比打包版新，改用 dev 模式" 'WARN'
+    }
+}
+
+if ($usePacked) {
     Write-Log "启动打包版：$packedExe"
     Start-Process -FilePath $packedExe
     Write-Log '已启动打包版' 'OK'
