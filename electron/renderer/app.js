@@ -461,6 +461,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     const v = await window.huepick.getVersion();
     if (v) el.textContent = 'v' + v;
   } catch (_) { /* keep HTML fallback */ }
+  refreshCacheSize();
+});
+
+// ============ 预览缓存管理 ============
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+async function refreshCacheSize() {
+  try {
+    const info = await window.huepick.getPreviewCacheInfo();
+    const el = document.getElementById('cache-size');
+    if (el) el.textContent = info.count > 0 ? formatSize(info.size) : '0 B';
+    const btn = document.getElementById('btn-clear-cache');
+    if (btn) btn.title = info.count > 0
+      ? `清理 ${info.count} 张预览缓存（${formatSize(info.size)}）`
+      : '预览缓存为空';
+  } catch (_) {}
+}
+
+document.getElementById('btn-clear-cache').addEventListener('click', async () => {
+  try {
+    const before = await window.huepick.getPreviewCacheInfo();
+    if (before.count === 0) {
+      log('预览缓存为空，无需清理', 'info');
+      return;
+    }
+    const info = await window.huepick.clearPreviewCache();
+    log(`已清理 ${info.count} 张预览缓存（${formatSize(info.size)}）`, 'ok');
+    refreshCacheSize();
+  } catch (err) {
+    log('清理失败：' + err.message, 'err');
+  }
 });
 
 // 全局错误捕获

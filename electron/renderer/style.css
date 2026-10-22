@@ -275,13 +275,12 @@ select:focus, input:focus { outline: none; border-color: #4a9eff; }
 .log .err { color: #ff453a; }
 .log .info { color: #8e8e93; }
 
-/* 底边栏：版本左 / 状态右 */
+/* 底边栏：版本左 / 状态右 / 清理缓存按钮最右 */
 .statusbar {
   height: 26px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   padding: 0 14px;
   background: #141418;
@@ -290,7 +289,28 @@ select:focus, input:focus { outline: none; border-color: #4a9eff; }
   color: #8e8e93;
 }
 .status-ver { color: #b0b0b5; font-weight: 500; flex-shrink: 0; }
-.status-text { flex-shrink: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.status-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.status-cache {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #636366;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.status-cache:hover {
+  color: #ff7a70;
+  border-color: rgba(255, 122, 112, 0.3);
+  background: rgba(255, 122, 112, 0.06);
+}
+.status-cache svg { opacity: 0.7; }
+.status-cache:hover svg { opacity: 1; }
 
 /* 滚动条 */
 ::-webkit-scrollbar { width: 8px; height: 8px; }

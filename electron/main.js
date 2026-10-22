@@ -237,3 +237,28 @@ ipcMain.handle('copy-text', async (_evt, text) => {
   clipboard.writeText(text);
   return true;
 });
+
+// ---------- 预览缓存管理 ----------
+const PREVIEW_DIR = path.join(app.getPath('temp'), 'HuePick-preview');
+
+function getPreviewCacheInfo() {
+  if (!fs.existsSync(PREVIEW_DIR)) return { count: 0, size: 0 };
+  let count = 0, size = 0;
+  for (const f of fs.readdirSync(PREVIEW_DIR)) {
+    const fp = path.join(PREVIEW_DIR, f);
+    try { const st = fs.statSync(fp); if (st.isFile()) { count++; size += st.size; } } catch (_) {}
+  }
+  return { count, size };
+}
+
+ipcMain.handle('preview-cache-info', () => getPreviewCacheInfo());
+
+ipcMain.handle('clear-preview-cache', () => {
+  const info = getPreviewCacheInfo();
+  try {
+    if (fs.existsSync(PREVIEW_DIR)) {
+      fs.rmSync(PREVIEW_DIR, { recursive: true, force: true });
+    }
+  } catch (_) { /* 部分文件可能被占用 */ }
+  return info;
+});
