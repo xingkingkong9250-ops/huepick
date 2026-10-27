@@ -8,6 +8,7 @@ import { RGB, TemplateId, ThemeId } from './types';
 /** 模板尺寸表（不含自定义） */
 export const TEMPLATE_SIZES: Record<Exclude<TemplateId, 'custom'>, { width: number; height: number }> = {
   cinematic: { width: 1920, height: 1080 },
+  cinematic2: { width: 1920, height: 1080 },
   landscape: { width: 1920, height: 1080 },
   portrait: { width: 1080, height: 1920 },
   square: { width: 1080, height: 1080 },

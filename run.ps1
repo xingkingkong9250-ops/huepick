@@ -102,9 +102,15 @@ if ($usePacked) {
         exit 1
     }
 
-    # 启动 dev 模式
-    Write-Log '启动 dev 模式（npx electron .）'
-    Start-Process -FilePath 'npx.cmd' -ArgumentList 'electron', '.' -WorkingDirectory $ProjectRoot
+    # 启动 dev 模式（直接调用 electron.exe，避免 npx.cmd 带出 cmd 控制台窗口）
+    $electronExe = Join-Path $ProjectRoot 'node_modules\electron\dist\electron.exe'
+    if (Test-Path $electronExe) {
+        Write-Log "启动 dev 模式：$electronExe ."
+        Start-Process -FilePath $electronExe -ArgumentList '.' -WorkingDirectory $ProjectRoot
+    } else {
+        Write-Log '未找到 electron.exe，回退 npx electron .' 'WARN'
+        Start-Process -FilePath 'npx.cmd' -ArgumentList 'electron', '.' -WorkingDirectory $ProjectRoot
+    }
     Write-Log '已启动 dev 模式' 'OK'
 }
 
