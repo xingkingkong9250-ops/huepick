@@ -1,4 +1,4 @@
-# HuePick · 版本发布脚本
+﻿# HuePick · 版本发布脚本
 #
 # 用法：
 #   .\build.ps1 -Mode Prepare    # 完整发布流程：tsc + electron-builder + 输出到 artifacts\staging\

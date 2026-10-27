@@ -1,6 +1,7 @@
 node_modules/
 out/
 dist/
+artifacts/
 *.vsix
 .git/
 .vscode-test/

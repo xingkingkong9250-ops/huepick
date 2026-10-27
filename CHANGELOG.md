@@ -4,6 +4,15 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.6.1] - 2026-10-23
+
+### Changed
+- **经典模板标题居中对齐**：作品名由左对齐改为与右侧色板栏居中对齐，长文件名不再超出画布边缘
+- **经典模板标题自动换行**：优先单行缩字（≥20px），放不下时依次放宽到 2 行（≥16px）、3 行（≥14px），接近边缘自动断行；极长名称超出显示行数时以省略号收尾，且不会压到「时段分类」行
+
+### Fixed
+- **build.ps1 缺少 UTF-8 BOM**：Windows PowerShell 5 按 ANSI 解析中文注释导致变量解析错位，发布构建在 staging 步骤报「Cannot bind argument to parameter 'Path' because it is null」，补充 BOM 后 `-Mode Prepare` 全流程通过
+
 ## [1.6.0] - 2026-10-23
 
 ### Added

@@ -758,16 +758,56 @@ async function renderCinematicCardClassic(
   const rightW = 340;
   const rightEnd = rightX + rightW;
 
-  // 作品名（ink y 115，字号 54，超宽自动缩字，直接使用图片文件名）
+  // 作品名（居中于色板栏，长文件名优先缩字排单行，过长再自动换行；纵向限 112~168）
   const title = titleText ?? path.basename(sourcePath, path.extname(sourcePath));
-  let titleSize = 54;
-  ctx.font = `bold ${titleSize}px ${FONT_FAMILY}`;
-  while (titleSize > 24 && ctx.measureText(title).width > rightW) {
-    titleSize -= 2;
+  const titleTop = 112;
+  const titleMaxH = 56;
+  const titleCenterX = rightX + rightW / 2;
+  // 行数上限依次放宽：先尝试 1 行（最小 20px），再 2 行（最小 16px），最后 3 行（最小 14px），
+  // 避免为了放大字号而把末尾一两个字挤成孤儿行
+  const lineCaps = [1, 2, 3];
+  const minSizes = [20, 16, 14];
+  let titleSize = 14;
+  let titleLines: string[] = [title];
+  let titleFitted = false;
+  for (let c = 0; c < lineCaps.length && !titleFitted; c++) {
+    for (let fs = 54; fs >= minSizes[c]; fs -= 1) {
+      ctx.font = `bold ${fs}px ${FONT_FAMILY}`;
+      const lines = wrapText(ctx, title, rightW);
+      const fitsWidth = lines.every(l => ctx.measureText(l).width <= rightW);
+      const inkBottom = (lines.length - 1) * Math.round(fs * 1.18) + fs * 0.88;
+      if (lines.length <= lineCaps[c] && fitsWidth && inkBottom <= titleMaxH) {
+        titleSize = fs;
+        titleLines = lines;
+        titleFitted = true;
+        break;
+      }
+    }
+  }
+  // 3 行最小字号仍放不下时，按最小字号换行后截断
+  if (!titleFitted) {
+    titleSize = minSizes[minSizes.length - 1];
     ctx.font = `bold ${titleSize}px ${FONT_FAMILY}`;
+    titleLines = wrapText(ctx, title, rightW);
+  }
+  ctx.font = `bold ${titleSize}px ${FONT_FAMILY}`;
+  // 最多 3 行，超出以省略号收尾，避免压到下方时段分类
+  if (titleLines.length > 3) {
+    const kept = titleLines.slice(0, 3);
+    let last = kept[2];
+    while (last.length > 1 && ctx.measureText(last + '…').width > rightW) {
+      last = last.slice(0, -1);
+    }
+    kept[2] = last + '…';
+    titleLines = kept;
   }
   ctx.fillStyle = INK;
-  ctx.fillText(title, rightX, 112);
+  ctx.textAlign = 'center';
+  const titlePitch = Math.round(titleSize * 1.18);
+  titleLines.forEach((line, i) => {
+    ctx.fillText(line, titleCenterX, titleTop + i * titlePitch);
+  });
+  ctx.textAlign = 'left';
 
   // 时段分类（ink y 174，字号 24）
   ctx.fillStyle = INK2;
