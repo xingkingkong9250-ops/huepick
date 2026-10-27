@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld('huepick', {
   getPreviewCacheInfo: () => ipcRenderer.invoke('preview-cache-info'),
   clearPreviewCache: () => ipcRenderer.invoke('clear-preview-cache'),
 
+  /** 参数设置持久化 */
+  loadSettings: () => ipcRenderer.invoke('load-settings'),
+  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+
   /** File → 本地真实路径（Electron 官方 API，跨平台可靠） */
   getPathForFile: (file) => {
     try { return webUtils.getPathForFile(file); } catch (e) { return null; }

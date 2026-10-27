@@ -87,6 +87,43 @@ app.on('activate', () => {
 
 ipcMain.handle('app-version', () => PKG_VERSION);
 
+// ---------- 参数设置持久化（userData/settings.json） ----------
+const DEFAULT_SETTINGS = {
+  numColors: 6,
+  template: 'cinematic',
+  theme: 'dark',
+  outputFormat: 'jpg',
+  cropBars: true,
+};
+
+function settingsFilePath() {
+  return path.join(app.getPath('userData'), 'settings.json');
+}
+
+function readSettings() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(settingsFilePath(), 'utf8'));
+    return { ...DEFAULT_SETTINGS, ...(saved && typeof saved === 'object' ? saved : {}) };
+  } catch (_) {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+/** 读取上次使用的参数（无记录时返回默认值） */
+ipcMain.handle('load-settings', () => readSettings());
+
+/** 保存当前参数（每次参数变化调用） */
+ipcMain.handle('save-settings', (_evt, settings) => {
+  try {
+    const merged = { ...DEFAULT_SETTINGS, ...(settings && typeof settings === 'object' ? settings : {}) };
+    fs.writeFileSync(settingsFilePath(), JSON.stringify(merged, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('[HuePick] save settings failed:', err.message);
+    return false;
+  }
+});
+
 /** 选择文件夹 → 返回图片文件列表 */
 ipcMain.handle('pick-folder', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {

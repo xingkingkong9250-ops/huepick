@@ -310,6 +310,58 @@ function readPayload() {
   };
 }
 
+// ============ 参数设置：默认值 / 上次设置持久化 / 恢复默认 ============
+const DEFAULT_SETTINGS = {
+  numColors: 6,             // 色数 6
+  template: 'cinematic',    // 影视分析·经典
+  theme: 'dark',
+  outputFormat: 'jpg',
+  cropBars: true,           // 裁切黑边
+};
+
+/** 当前参数（持久化用） */
+function collectSettings() {
+  return {
+    numColors: parseInt($('#p-colors').value),
+    template: $('#p-template').value,
+    theme: $('#p-theme').value,
+    outputFormat: $('#p-format').value,
+    cropBars: $('#p-crop').checked,
+  };
+}
+
+/** 把设置写回控件；历史值已不存在于下拉项时回落默认 */
+function applySettings(s) {
+  const st = { ...DEFAULT_SETTINGS, ...(s || {}) };
+  $('#p-colors').value = String(st.numColors);
+  if (!$('#p-colors').value) $('#p-colors').value = String(DEFAULT_SETTINGS.numColors);
+  $('#p-template').value = st.template;
+  if (!$('#p-template').value) $('#p-template').value = DEFAULT_SETTINGS.template;
+  $('#p-theme').value = st.theme;
+  $('#p-format').value = st.outputFormat;
+  if (!$('#p-format').value) $('#p-format').value = DEFAULT_SETTINGS.outputFormat;
+  $('#p-crop').checked = st.cropBars !== false;
+}
+
+async function persistSettings() {
+  try { await window.huepick.saveSettings(collectSettings()); } catch (_) { /* 写盘失败不影响生成 */ }
+}
+
+async function restoreSettings() {
+  try {
+    applySettings(await window.huepick.loadSettings());
+  } catch (_) {
+    applySettings(DEFAULT_SETTINGS);
+  }
+}
+
+$('#btn-reset-settings').addEventListener('click', async () => {
+  applySettings(DEFAULT_SETTINGS);
+  await persistSettings();
+  triggerPreviewDebounced();
+  log('已恢复默认设置（色数 6 · 经典模板 · JPG · 裁切黑边）', 'ok');
+});
+
 // ============ 预览目标（选中项中最后一次点击的那个） ============
 function getPreviewTarget() {
   if (state.lastClickedIdx >= 0 && state.lastClickedIdx < state.files.length) {
@@ -440,16 +492,17 @@ async function showPreview(result) {
 }
 
 // ============ 初始化 ============
+restoreSettings();   // 恢复上次使用的参数（无记录时用默认值）
 renderList();
 showPreviewEmpty();
 log('HuePick 桌面版就绪', 'ok');
 
-// 参数变化 → debounce 自动刷新预览
+// 参数变化 → 保存设置 + debounce 自动刷新预览
 const previewTriggers = ['#p-colors', '#p-template', '#p-theme', '#p-crop', '#p-format'];
 previewTriggers.forEach(sel => {
   const el = document.querySelector(sel);
   if (!el) return;
-  el.addEventListener('change', triggerPreviewDebounced);
+  el.addEventListener('change', () => { persistSettings(); triggerPreviewDebounced(); });
   el.addEventListener('input', triggerPreviewDebounced);
 });
 
