@@ -126,12 +126,15 @@ export async function generateCard(sourcePath: string, options: CardOptions): Pr
       throw new Error('未能从图片中提取到任何主色');
     }
 
-    // 影视分析模板走独立渲染管线（cinematic=经典，cinematic2=海报浅色）
+    // 影视分析模板走独立渲染管线（cinematic=经典，cinematic2=海报浅色，cinematic2dark=海报深色）
     if (template === 'cinematic') {
       return await renderCinematicCardClassic(sourcePath, work, colors, options);
     }
     if (template === 'cinematic2') {
-      return await renderCinematicCard(sourcePath, work, colors, options);
+      return await renderCinematicCard(sourcePath, work, colors, options, false);
+    }
+    if (template === 'cinematic2dark') {
+      return await renderCinematicCard(sourcePath, work, colors, options, true);
     }
 
     // 4. 画布缩放因子（相对 1920 宽的基准字体/间距）
@@ -360,27 +363,31 @@ function cnNumeral(n: number): string {
 
 /**
  * 渲染影视分析色卡 · 海报版（1920×1080）
+ * 浅色 / 深色共用同一版式，仅底色与文字色不同：
  *   顶栏  标题（左上 44px，直接使用图片文件名）+「COLOR PALETTE · N阶色卡」（右上 30px）
  *   左栏  照片 1242×621 @ (71,117) + 九宫格（111×42 @ 71,778）+ 光影判断（x478）
  *   右栏  x1346 宽 542：色块 542×100、步距 165（色数多时自动压缩），
  *         编号名称与占比在上，RGB 与 HEX 在下
  *   底部  全宽配色比例条（按占比降序分段，段内标注百分比）
+ *
+ * @param dark 深色版（设计软件深灰底 + 浅色文字）
  */
 async function renderCinematicCard(
   sourcePath: string,
   work: { data: Buffer; width: number; height: number },
   colors: ColorInfo[],
   options: CardOptions,
+  dark = false,
 ): Promise<ProcessResult> {
   const { outputPath, outputFormat = 'jpg', titleText } = options;
   const W = 1920, H = 1080;
 
-  // 配色：按参考图实测值
-  const BG = '#B2B2B2';
-  const INK = '#181A1F';
-  const INK2 = '#34363C';
-  const INK3 = '#44464C';
-  const BLUE = '#123296';
+  // 配色：浅色版按参考图实测值，深色版取设计软件深灰底 + 浅色文字
+  const BG = dark ? '#201F21' : '#B2B2B2';
+  const INK = dark ? '#F2F3F5' : '#181A1F';
+  const INK2 = dark ? '#C7C9CE' : '#34363C';
+  const INK3 = dark ? '#9B9EA4' : '#44464C';
+  const BLUE = dark ? '#7EA6F5' : '#123296';
 
   // 光影分析
   const luma = analyzeLuma(work.data, work.width, work.height);
@@ -751,17 +758,16 @@ async function renderCinematicCardClassic(
   const rightW = 340;
   const rightEnd = rightX + rightW;
 
-  // 作品名（ink y 115，字号 54，超宽自动缩字）
+  // 作品名（ink y 115，字号 54，超宽自动缩字，直接使用图片文件名）
   const title = titleText ?? path.basename(sourcePath, path.extname(sourcePath));
-  const titleStr = `《${title}》`;
   let titleSize = 54;
   ctx.font = `bold ${titleSize}px ${FONT_FAMILY}`;
-  while (titleSize > 24 && ctx.measureText(titleStr).width > rightW) {
+  while (titleSize > 24 && ctx.measureText(title).width > rightW) {
     titleSize -= 2;
     ctx.font = `bold ${titleSize}px ${FONT_FAMILY}`;
   }
   ctx.fillStyle = INK;
-  ctx.fillText(titleStr, rightX, 112);
+  ctx.fillText(title, rightX, 112);
 
   // 时段分类（ink y 174，字号 24）
   ctx.fillStyle = INK2;
