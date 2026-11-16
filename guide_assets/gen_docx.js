@@ -8,7 +8,7 @@ const {
 } = require('docx');
 
 const ASSETS = path.join(__dirname);
-const OUT_PATH = path.join(__dirname, '..', '..', 'HuePick_安装使用说明_v1.2.0.docx');
+const OUT_PATH = path.join(__dirname, '..', 'docs', 'HuePick_安装使用说明_v1.2.0.docx');
 const CJK = { ascii: "Arial", hAnsi: "Arial", eastAsia: "Microsoft YaHei" };
 
 const T = (text, opts = {}) => new TextRun({ text, font: CJK, ...opts });
